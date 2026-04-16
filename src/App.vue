@@ -3,5 +3,6 @@ import HelloWorld from './components/HelloWorld.vue'
 </script>
 
 <template>
-  <HelloWorld />
+  <!-- <HelloWorld /> -->
+   <router-view />
 </template>
