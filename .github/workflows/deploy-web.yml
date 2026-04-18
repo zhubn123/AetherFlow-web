@@ -1,0 +1,79 @@
+name: Deploy Web
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-web-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      DEPLOY_DIR: /srv/aetherflow/web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Build static assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+      - name: Trust server host key
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.SERVER_PORT || '22' }}" "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Package build
+        run: tar -czf "dist-${GITHUB_SHA}.tgz" dist
+
+      - name: Prepare remote directories
+        shell: bash
+        run: |
+          ssh -p "${{ secrets.SERVER_PORT || '22' }}" "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
+            "mkdir -p '${DEPLOY_DIR}/releases' '${DEPLOY_DIR}/shared'"
+
+      - name: Upload package
+        shell: bash
+        run: |
+          scp -P "${{ secrets.SERVER_PORT || '22' }}" \
+            "dist-${GITHUB_SHA}.tgz" \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${DEPLOY_DIR}/releases/dist-${GITHUB_SHA}.tgz"
+
+      - name: Activate release
+        shell: bash
+        run: |
+          ssh -p "${{ secrets.SERVER_PORT || '22' }}" "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" << EOF
+          set -euo pipefail
+          DEPLOY_DIR="${DEPLOY_DIR}"
+          RELEASE_ROOT="\${DEPLOY_DIR}/releases"
+          RELEASE_DIR="\${RELEASE_ROOT}/${GITHUB_SHA}"
+          PACKAGE_FILE="\${RELEASE_ROOT}/dist-${GITHUB_SHA}.tgz"
+
+          mkdir -p "\${RELEASE_DIR}"
+          tar -xzf "\${PACKAGE_FILE}" -C "\${RELEASE_DIR}"
+          ln -sfn "\${RELEASE_DIR}/dist" "\${DEPLOY_DIR}/current"
+
+          # 如果 nginx 以 current 目录为 root，这里无需重载；
+          # 如果你有缓存策略或变更了 nginx 配置，可手动 reload。
+          EOF
