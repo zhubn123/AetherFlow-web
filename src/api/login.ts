@@ -23,10 +23,7 @@ export interface ApiResponse<T = any> {
 }
 
 export const loginApi = async (data: LoginRequest): Promise<LoginResponse> => {
-    await axios.post<ApiResponse<LoginResponse>>(
-        'http://localhost:8080/api/login',
-        data
-    )
+    await axios.post<ApiResponse<LoginResponse>>('/api/login', data)
     
     // TODO: 后端模拟状态，暂时简化处理
     // TODO: 等后端完善后，恢复标准响应格式检查
