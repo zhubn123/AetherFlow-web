@@ -23,7 +23,7 @@ export interface ApiResponse<T = any> {
 }
 
 export const loginApi = async (data: LoginRequest): Promise<LoginResponse> => {
-    const response = await axios.post<ApiResponse<LoginResponse>>(
+    await axios.post<ApiResponse<LoginResponse>>(
         'http://localhost:8080/api/login',
         data
     )
