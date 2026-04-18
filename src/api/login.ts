@@ -23,18 +23,9 @@ export interface ApiResponse<T = any> {
 }
 
 export const loginApi = async (data: LoginRequest): Promise<LoginResponse> => {
-    const formData = new URLSearchParams()
-    formData.append('username', data.username)
-    formData.append('password', data.password)
-    
     const response = await axios.post<ApiResponse<LoginResponse>>(
         'http://localhost:8080/api/login',
-        formData,
-        {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
-        }
+        data
     )
     
     // TODO: 后端模拟状态，暂时简化处理
