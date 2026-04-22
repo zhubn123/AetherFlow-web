@@ -1,4 +1,4 @@
-import axios from 'axios'
+import { requestApi } from '@/utils/request'
 
 export interface LoginRequest {
     username: string
@@ -16,27 +16,15 @@ export interface LoginResponse {
     userInfo: UserInfo
 }
 
-export interface ApiResponse<T = any> {
-    code: number
-    message: string
-    data: T
-}
-
 export const loginApi = async (data: LoginRequest): Promise<LoginResponse> => {
-    await axios.post<ApiResponse<LoginResponse>>('/api/login', data)
-    
-    // TODO: 后端模拟状态，暂时简化处理
-    // TODO: 等后端完善后，恢复标准响应格式检查
-    
-    // 原始的标准响应格式检查代码（已注释）
-    // if (response.data.code !== 200) {
-    //     throw new Error(response.data.message || '登录失败')
-    // }
-    // return response.data.data
-    
-    // 暂时直接返回模拟数据
+    const token = await requestApi<string>({
+        url: '/login',
+        method: 'post',
+        data
+    })
     return {
-        token: 'mock-token-' + Date.now(),
+        token,
+        // TODO 后端登录目前返回的是 token 字符串，所以前端 userInfo 还是用当前最小映射（用户名回填），等后端补用户详情接口后再切成真实用户信息
         userInfo: {
             id: '1',
             username: data.username,

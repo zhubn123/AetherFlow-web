@@ -152,12 +152,11 @@ const login = async () => {
     
     loading.value = true
     
-    const success = await userStore.login({
-        username: username.value,
-        password: password.value
-    })
-    
-    if (success) {
+    try {
+        await userStore.login({
+            username: username.value,
+            password: password.value
+        })
         if (rememberMe.value) {
             localStorage.setItem('username', username.value)
         } else {
@@ -165,8 +164,9 @@ const login = async () => {
         }
         
         router.push('/dashboard')
-    } else {
-        errorMessage.value = '登录失败，请检查用户名和密码'
+    } catch (error) {
+        errorMessage.value = error instanceof Error ? error.message : '登录失败'
+        console.error('登录失败:', error)
     }
     
     loading.value = false

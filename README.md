@@ -18,3 +18,13 @@ Vue 3 + TypeScript + Vite frontend for the AetherFlow project.
 npm install
 npm run dev
 ```
+
+## Environment
+
+Copy `.env.example` to `.env.development` before development.
+
+```bash
+cp .env.example .env.development
+```
+
+Default local proxy maps `/api` to `http://localhost:8080`.
