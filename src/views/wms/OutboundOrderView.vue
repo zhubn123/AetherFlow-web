@@ -1,0 +1,463 @@
+<template>
+  <div class="wms-page">
+    <header class="page-header">
+      <div>
+        <h1>出库管理</h1>
+        <p>支持草稿创建、确认扣减和单据状态跟踪。</p>
+      </div>
+      <RouterLink to="/dashboard" class="btn ghost">返回首页</RouterLink>
+    </header>
+
+    <WmsNav />
+
+    <section class="panel">
+      <h2>查询条件</h2>
+      <div class="field-grid">
+        <div class="field">
+          <label>单号</label>
+          <input v-model.trim="query.orderNo" type="text" placeholder="支持模糊匹配" />
+        </div>
+        <div class="field">
+          <label>仓库</label>
+          <select v-model="queryWarehouseId">
+            <option value="">全部</option>
+            <option v-for="item in warehouseOptions" :key="String(item.id)" :value="String(item.id)">
+              {{ item.warehouseCode }} - {{ item.warehouseName }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label>状态</label>
+          <select v-model="queryStatus">
+            <option value="">全部</option>
+            <option value="0">草稿</option>
+            <option value="1">已确认</option>
+          </select>
+        </div>
+      </div>
+      <div class="actions-row">
+        <button class="btn" :disabled="loading" @click="handleSearch">查询</button>
+        <button class="btn secondary" :disabled="loading" @click="resetQuery">重置</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>出库单列表</h2>
+      <div v-if="successMessage" class="message success">{{ successMessage }}</div>
+      <div v-if="errorMessage" class="message error">{{ errorMessage }}</div>
+      <div class="actions-row">
+        <button class="btn" :disabled="loading" @click="openCreateDialog">新建出库单</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>单号</th>
+              <th>仓库ID</th>
+              <th>状态</th>
+              <th>出库时间</th>
+              <th>备注</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in rows" :key="String(row.id)">
+              <td>{{ row.id }}</td>
+              <td>{{ row.orderNo }}</td>
+              <td>{{ row.warehouseId }}</td>
+              <td>
+                <span class="status-tag" :class="row.status === 1 ? 'normal' : 'disabled'">
+                  {{ row.status === 1 ? '已确认' : '草稿' }}
+                </span>
+              </td>
+              <td>{{ row.outboundTime || '-' }}</td>
+              <td>{{ row.remark || '-' }}</td>
+              <td>
+                <div class="cell-actions">
+                  <button class="text-link" :disabled="loading || row.status === 1" @click="startEdit(row)">编辑</button>
+                  <button class="text-link" :disabled="loading || row.status === 1" @click="confirmRow(row)">确认</button>
+                  <button class="text-link danger" :disabled="loading" @click="removeRow(row)">删除</button>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="!rows.length">
+              <td class="empty-cell" colspan="7">暂无数据</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span>共 {{ total }} 条，当前第 {{ query.pageNo }} / {{ pages || 1 }} 页</span>
+        <div class="actions-row" style="margin-top: 0;">
+          <button class="btn secondary" :disabled="loading || (query.pageNo || 1) <= 1" @click="prevPage">上一页</button>
+          <button class="btn secondary" :disabled="loading || (query.pageNo || 1) >= pages" @click="nextPage">下一页</button>
+        </div>
+      </div>
+    </section>
+
+    <div v-if="dialogVisible" class="dialog-mask" @click.self="closeDialog">
+      <section class="dialog-panel">
+        <h2>{{ dialogMode === 'create' ? '新建出库单草稿' : '编辑出库单表头' }}</h2>
+        <p v-if="dialogMode === 'edit'" class="muted-tip">当前版本编辑仅修改表头（仓库、备注）；明细编辑待后端明细查询接口补齐后接入。</p>
+
+        <div class="field-grid">
+          <div class="field">
+            <label>仓库 *</label>
+            <select v-model="form.warehouseId">
+              <option value="">请选择仓库</option>
+              <option v-for="item in warehouseOptions" :key="String(item.id)" :value="String(item.id)">
+                {{ item.warehouseCode }} - {{ item.warehouseName }}
+              </option>
+            </select>
+          </div>
+          <div class="field" style="grid-column: span 3;">
+            <label>备注</label>
+            <input v-model.trim="form.remark" type="text" placeholder="可选" />
+          </div>
+        </div>
+
+        <template v-if="dialogMode === 'create'">
+          <div class="actions-row">
+            <button class="btn secondary" type="button" @click="addItem">新增明细行</button>
+          </div>
+          <div class="table-wrap">
+            <table class="editor-table">
+              <thead>
+                <tr>
+                  <th>行号</th>
+                  <th>物料 *</th>
+                  <th>库位</th>
+                  <th>计划数量 *</th>
+                  <th>备注</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in form.orderItemsBo" :key="index">
+                  <td>{{ index + 1 }}</td>
+                  <td>
+                    <select v-model="item.materialId">
+                      <option value="">请选择物料</option>
+                      <option v-for="m in materialOptions" :key="String(m.id)" :value="String(m.id)">
+                        {{ m.materialCode }} - {{ m.materialName }}
+                      </option>
+                    </select>
+                  </td>
+                  <td>
+                    <select v-model="item.locationId">
+                      <option value="">请选择库位</option>
+                      <option v-for="l in locationOptions" :key="String(l.id)" :value="String(l.id)">
+                        {{ l.locationCode }} - {{ l.locationName }}
+                      </option>
+                    </select>
+                  </td>
+                  <td>
+                    <input v-model.number="item.plannedQty" type="number" min="0.0001" step="0.0001" />
+                  </td>
+                  <td>
+                    <input v-model.trim="item.remark" type="text" placeholder="可选" />
+                  </td>
+                  <td>
+                    <button class="text-link danger" type="button" @click="removeItem(index)">删除</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+
+        <div class="actions-row">
+          <button class="btn" :disabled="loading" @click="submitForm">{{ dialogMode === 'create' ? '创建草稿' : '保存修改' }}</button>
+          <button class="btn text" :disabled="loading" @click="closeDialog">取消</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted, reactive, ref } from 'vue'
+import { RouterLink } from 'vue-router'
+import WmsNav from '@/components/WmsNav.vue'
+import {
+  confirmOutboundOrder,
+  createOutboundOrder,
+  queryLocations,
+  queryMaterials,
+  queryOutboundOrders,
+  queryWarehouses,
+  removeOutboundOrders,
+  updateOutboundOrder,
+  type OutboundOrderQuery
+} from '@/api/wms'
+import type { IdValue, Location, Material, OutboundOrder, OutboundOrderItem, Warehouse } from '@/types/wms'
+
+type DialogMode = 'create' | 'edit'
+
+interface OutboundDraftForm {
+  id?: IdValue
+  warehouseId: string
+  remark: string
+  orderItemsBo: OutboundOrderItem[]
+}
+
+const loading = ref(false)
+const rows = ref<OutboundOrder[]>([])
+const total = ref(0)
+const pages = ref(0)
+const successMessage = ref('')
+const errorMessage = ref('')
+
+const dialogVisible = ref(false)
+const dialogMode = ref<DialogMode>('create')
+const queryWarehouseId = ref('')
+const queryStatus = ref('')
+
+const warehouseOptions = ref<Warehouse[]>([])
+const locationOptions = ref<Location[]>([])
+const materialOptions = ref<Material[]>([])
+
+const query = reactive<OutboundOrderQuery>({
+  pageNo: 1,
+  pageSize: 10,
+  orderNo: '',
+  warehouseId: undefined,
+  status: undefined
+})
+
+const form = reactive<OutboundDraftForm>({
+  id: undefined,
+  warehouseId: '',
+  remark: '',
+  orderItemsBo: []
+})
+
+function clearMessages(): void {
+  successMessage.value = ''
+  errorMessage.value = ''
+}
+
+function resetForm(): void {
+  form.id = undefined
+  form.warehouseId = ''
+  form.remark = ''
+  form.orderItemsBo = []
+}
+
+function closeDialog(): void {
+  dialogVisible.value = false
+  resetForm()
+}
+
+function openCreateDialog(): void {
+  clearMessages()
+  dialogMode.value = 'create'
+  resetForm()
+  addItem()
+  dialogVisible.value = true
+}
+
+function startEdit(row: OutboundOrder): void {
+  clearMessages()
+  dialogMode.value = 'edit'
+  form.id = row.id
+  form.warehouseId = String(row.warehouseId)
+  form.remark = row.remark || ''
+  form.orderItemsBo = []
+  dialogVisible.value = true
+}
+
+function addItem(): void {
+  form.orderItemsBo.push({
+    lineNo: form.orderItemsBo.length + 1,
+    materialId: '',
+    locationId: '',
+    plannedQty: 1,
+    remark: ''
+  })
+}
+
+function removeItem(index: number): void {
+  form.orderItemsBo.splice(index, 1)
+  form.orderItemsBo.forEach((item, i) => {
+    item.lineNo = i + 1
+  })
+}
+
+function normalizeQuery(): void {
+  query.warehouseId = queryWarehouseId.value ? queryWarehouseId.value : undefined
+  query.status = queryStatus.value === '' ? undefined : Number(queryStatus.value)
+}
+
+function resetQuery(): void {
+  query.pageNo = 1
+  query.orderNo = ''
+  queryWarehouseId.value = ''
+  queryStatus.value = ''
+  query.warehouseId = undefined
+  query.status = undefined
+  void loadData()
+}
+
+function handleSearch(): void {
+  query.pageNo = 1
+  normalizeQuery()
+  void loadData()
+}
+
+async function loadOptions(): Promise<void> {
+  const [warehouses, materialsPage, locationsPage] = await Promise.all([
+    queryWarehouses({ pageNo: 1, pageSize: 200 }),
+    queryMaterials({ pageNo: 1, pageSize: 200, status: 0 }),
+    queryLocations({ pageNo: 1, pageSize: 200, status: 0 })
+  ])
+  warehouseOptions.value = warehouses
+  materialOptions.value = materialsPage.records
+  locationOptions.value = locationsPage.records
+}
+
+async function loadData(): Promise<void> {
+  clearMessages()
+  normalizeQuery()
+  loading.value = true
+  try {
+    const result = await queryOutboundOrders(query)
+    rows.value = result.records
+    total.value = result.total
+    pages.value = Math.max(result.pages, 1)
+    query.pageNo = result.pageNo
+    query.pageSize = result.pageSize
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '出库单加载失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+function validateCreateForm(): boolean {
+  if (!form.warehouseId) {
+    errorMessage.value = '请选择仓库'
+    return false
+  }
+  if (!form.orderItemsBo.length) {
+    errorMessage.value = '出库单明细不能为空'
+    return false
+  }
+  const invalidIndex = form.orderItemsBo.findIndex((item) => !item.materialId || !item.plannedQty || Number(item.plannedQty) <= 0)
+  if (invalidIndex >= 0) {
+    errorMessage.value = `第 ${invalidIndex + 1} 行明细未填写完整`
+    return false
+  }
+  return true
+}
+
+async function submitForm(): Promise<void> {
+  clearMessages()
+  loading.value = true
+  try {
+    if (dialogMode.value === 'create') {
+      if (!validateCreateForm()) {
+        return
+      }
+      const payloadItems = form.orderItemsBo.map((item, index) => ({
+        lineNo: index + 1,
+        materialId: item.materialId,
+        locationId: item.locationId || undefined,
+        plannedQty: item.plannedQty,
+        remark: item.remark || undefined
+      }))
+      await createOutboundOrder({
+        warehouseId: form.warehouseId,
+        remark: form.remark || undefined,
+        orderItemsBo: payloadItems
+      })
+      successMessage.value = '出库单草稿创建成功'
+    } else {
+      if (!form.id) {
+        errorMessage.value = '缺少单据ID'
+        return
+      }
+      if (!form.warehouseId) {
+        errorMessage.value = '请选择仓库'
+        return
+      }
+      await updateOutboundOrder(form.id, {
+        warehouseId: form.warehouseId,
+        remark: form.remark || undefined
+      })
+      successMessage.value = '出库单更新成功'
+    }
+
+    closeDialog()
+    await loadData()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '操作失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function confirmRow(row: OutboundOrder): Promise<void> {
+  clearMessages()
+  const confirmed = window.confirm(`确认将出库单 ${row.orderNo} 执行“确认”吗？`)
+  if (!confirmed) {
+    return
+  }
+  loading.value = true
+  try {
+    await confirmOutboundOrder(row.id)
+    successMessage.value = '出库单已确认'
+    await loadData()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '确认失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function removeRow(row: OutboundOrder): Promise<void> {
+  clearMessages()
+  const confirmed = window.confirm(`确认删除出库单 ${row.orderNo} 吗？`)
+  if (!confirmed) {
+    return
+  }
+  loading.value = true
+  try {
+    await removeOutboundOrders([row.id])
+    successMessage.value = '出库单删除成功'
+    await loadData()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '删除失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+function prevPage(): void {
+  if ((query.pageNo || 1) <= 1) {
+    return
+  }
+  query.pageNo = (query.pageNo || 1) - 1
+  void loadData()
+}
+
+function nextPage(): void {
+  if ((query.pageNo || 1) >= pages.value) {
+    return
+  }
+  query.pageNo = (query.pageNo || 1) + 1
+  void loadData()
+}
+
+onMounted(async () => {
+  try {
+    await loadOptions()
+    await loadData()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '初始化失败'
+  }
+})
+</script>
+
+<style scoped src="./wms-page.css"></style>

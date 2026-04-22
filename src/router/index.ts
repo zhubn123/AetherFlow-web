@@ -15,6 +15,36 @@ export const constantRoutes = [
         path: '/dashboard',
         component: () => import('@/views/Dashboard.vue'),
         meta: { requiresAuth: true }
+    },
+    {
+        path: '/wms/warehouses',
+        component: () => import('@/views/wms/WarehouseView.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/wms/locations',
+        component: () => import('@/views/wms/LocationView.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/wms/materials',
+        component: () => import('@/views/wms/MaterialView.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/wms/inbound-orders',
+        component: () => import('@/views/wms/InboundOrderView.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/wms/outbound-orders',
+        component: () => import('@/views/wms/OutboundOrderView.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/wms/stocks',
+        component: () => import('@/views/wms/InventoryView.vue'),
+        meta: { requiresAuth: true }
     }
 ]
 
