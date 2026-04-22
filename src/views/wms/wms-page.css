@@ -178,26 +178,35 @@ th {
   border: 1px solid #fecaca;
 }
 
-.dialog-mask {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 16px;
+.wms-dialog :deep(.el-dialog__header) {
+  padding: 18px 20px 8px;
 }
 
-.dialog-panel {
-  width: min(760px, 100%);
-  max-height: calc(100vh - 32px);
-  overflow: auto;
-  background: #fff;
-  border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.25);
-  padding: 14px;
+.wms-dialog :deep(.el-dialog__title) {
+  font-size: 20px;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.wms-dialog :deep(.el-dialog__body) {
+  padding: 10px 20px 12px;
+}
+
+.wms-dialog :deep(.el-dialog__footer) {
+  padding: 10px 20px 18px;
+}
+
+.wms-dialog :deep(.el-select),
+.wms-dialog :deep(.el-input),
+.wms-dialog :deep(.el-input-number) {
+  width: 100%;
+}
+
+.wms-dialog :deep(.el-input__wrapper),
+.wms-dialog :deep(.el-select__wrapper),
+.wms-dialog :deep(.el-input-number .el-input__wrapper) {
+  min-height: 42px;
+  font-size: 15px;
 }
 
 .muted-tip {
@@ -214,6 +223,12 @@ th {
   padding: 6px 8px;
   font-size: 13px;
   background: #fff;
+}
+
+.editor-table :deep(.el-select),
+.editor-table :deep(.el-input),
+.editor-table :deep(.el-input-number) {
+  width: 100%;
 }
 
 .pagination {

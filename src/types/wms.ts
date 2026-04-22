@@ -19,6 +19,8 @@ export interface Warehouse {
 export interface Location {
   id: IdValue
   warehouseId: IdValue
+  warehouseCode?: string
+  warehouseName?: string
   locationCode: string
   locationName: string
   status: number
@@ -38,8 +40,14 @@ export interface Material {
 export interface Inventory {
   id: IdValue
   warehouseId: IdValue
+  warehouseCode?: string
+  warehouseName?: string
   locationId: IdValue
+  locationCode?: string
+  locationName?: string
   materialId: IdValue
+  materialCode?: string
+  materialName?: string
   quantity: number | string
   lockedQuantity: number | string
 }
@@ -70,6 +78,8 @@ export interface InboundOrder {
   id: IdValue
   orderNo: string
   warehouseId: IdValue
+  warehouseCode?: string
+  warehouseName?: string
   status: number
   inboundTime?: string
   remark?: string
@@ -79,6 +89,8 @@ export interface OutboundOrder {
   id: IdValue
   orderNo: string
   warehouseId: IdValue
+  warehouseCode?: string
+  warehouseName?: string
   status: number
   outboundTime?: string
   remark?: string

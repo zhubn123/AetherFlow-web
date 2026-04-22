@@ -14,8 +14,13 @@
       <h2>查询条件</h2>
       <div class="field-grid">
         <div class="field">
-          <label>仓库ID</label>
-          <input v-model.trim="query.warehouseId" type="text" placeholder="例如 192..." />
+          <label>仓库</label>
+          <select v-model="queryWarehouseId">
+            <option value="">全部</option>
+            <option v-for="item in warehouseOptions" :key="String(item.id)" :value="String(item.id)">
+              {{ item.warehouseCode }} - {{ item.warehouseName }}
+            </option>
+          </select>
         </div>
         <div class="field">
           <label>库位编码</label>
@@ -51,8 +56,7 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>仓库ID</th>
+              <th>仓库</th>
               <th>编码</th>
               <th>名称</th>
               <th>状态</th>
@@ -62,8 +66,7 @@
           </thead>
           <tbody>
             <tr v-for="row in rows" :key="String(row.id)">
-              <td>{{ row.id }}</td>
-              <td>{{ row.warehouseId }}</td>
+              <td>{{ renderWarehouse(row) }}</td>
               <td>{{ row.locationCode || '-' }}</td>
               <td>{{ row.locationName }}</td>
               <td>
@@ -80,7 +83,7 @@
               </td>
             </tr>
             <tr v-if="!rows.length">
-              <td class="empty-cell" colspan="7">暂无数据</td>
+              <td class="empty-cell" colspan="6">暂无数据</td>
             </tr>
           </tbody>
         </table>
@@ -94,37 +97,50 @@
       </div>
     </section>
 
-    <div v-if="formVisible" class="dialog-mask" @click.self="closeDialog">
-      <section class="dialog-panel">
-        <h2>{{ formTitle }}</h2>
-        <div class="field-grid">
-          <div class="field">
-            <label>仓库ID *</label>
-            <input v-model.trim="form.warehouseId" type="text" placeholder="请输入所属仓库ID" />
-          </div>
-          <div class="field">
-            <label>库位名称 *</label>
-            <input v-model.trim="form.locationName" type="text" placeholder="请输入库位名称" />
-          </div>
-          <div class="field">
-            <label>状态</label>
-            <select v-model.number="form.status">
-              <option :value="0">正常</option>
-              <option :value="1">停用</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>备注</label>
-            <input v-model.trim="form.remark" type="text" placeholder="可选" />
-          </div>
+    <el-dialog
+      v-model="formVisible"
+      class="wms-dialog"
+      :title="formTitle"
+      width="760px"
+      :close-on-click-modal="false"
+      @closed="resetForm"
+    >
+      <div class="field-grid">
+        <div class="field">
+          <label>仓库 *</label>
+          <el-select v-model="form.warehouseId" placeholder="请选择仓库">
+            <el-option
+              v-for="item in warehouseOptions"
+              :key="String(item.id)"
+              :label="`${item.warehouseCode} - ${item.warehouseName}`"
+              :value="String(item.id)"
+            />
+          </el-select>
         </div>
+        <div class="field">
+          <label>库位名称 *</label>
+          <el-input v-model="form.locationName" placeholder="请输入库位名称" />
+        </div>
+        <div class="field">
+          <label>状态</label>
+          <el-select v-model="form.status" placeholder="请选择状态">
+            <el-option label="正常" :value="0" />
+            <el-option label="停用" :value="1" />
+          </el-select>
+        </div>
+        <div class="field">
+          <label>备注</label>
+          <el-input v-model="form.remark" placeholder="可选" />
+        </div>
+      </div>
+      <template #footer>
         <div class="actions-row">
           <button class="btn" :disabled="loading" @click="submitForm">{{ isEditing ? '保存修改' : '创建库位' }}</button>
           <button class="btn secondary" :disabled="loading" @click="resetForm">清空表单</button>
           <button class="btn text" :disabled="loading" @click="closeDialog">取消</button>
         </div>
-      </section>
-    </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -132,8 +148,8 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import WmsNav from '@/components/WmsNav.vue'
-import { createLocation, queryLocations, removeLocations, updateLocation, type LocationQuery } from '@/api/wms'
-import type { Location } from '@/types/wms'
+import { createLocation, queryLocations, queryWarehouses, removeLocations, updateLocation, type LocationQuery } from '@/api/wms'
+import type { Location, Warehouse } from '@/types/wms'
 
 const loading = ref(false)
 const rows = ref<Location[]>([])
@@ -144,11 +160,13 @@ const errorMessage = ref('')
 const isEditing = ref(false)
 const formVisible = ref(false)
 const statusFilter = ref('')
+const queryWarehouseId = ref('')
+const warehouseOptions = ref<Warehouse[]>([])
 
 const query = reactive<LocationQuery>({
   pageNo: 1,
   pageSize: 10,
-  warehouseId: '',
+  warehouseId: undefined,
   locationCode: '',
   locationName: '',
   status: undefined
@@ -173,9 +191,14 @@ function normalizeStatusFilter(): void {
   query.status = statusFilter.value === '' ? undefined : Number(statusFilter.value)
 }
 
+function normalizeWarehouseFilter(): void {
+  query.warehouseId = queryWarehouseId.value ? queryWarehouseId.value : undefined
+}
+
 function resetQuery(): void {
   query.pageNo = 1
-  query.warehouseId = ''
+  queryWarehouseId.value = ''
+  query.warehouseId = undefined
   query.locationCode = ''
   query.locationName = ''
   statusFilter.value = ''
@@ -185,6 +208,7 @@ function resetQuery(): void {
 
 function handleSearch(): void {
   query.pageNo = 1
+  normalizeWarehouseFilter()
   normalizeStatusFilter()
   void loadData()
 }
@@ -214,7 +238,7 @@ function startEdit(row: Location): void {
   formVisible.value = true
   isEditing.value = true
   form.id = row.id
-  form.warehouseId = row.warehouseId
+  form.warehouseId = String(row.warehouseId)
   form.locationName = row.locationName
   form.status = row.status ?? 0
   form.remark = row.remark || ''
@@ -222,6 +246,7 @@ function startEdit(row: Location): void {
 
 async function loadData(): Promise<void> {
   clearMessages()
+  normalizeWarehouseFilter()
   normalizeStatusFilter()
   loading.value = true
   try {
@@ -236,6 +261,23 @@ async function loadData(): Promise<void> {
   } finally {
     loading.value = false
   }
+}
+
+async function loadWarehouseOptions(): Promise<void> {
+  warehouseOptions.value = await queryWarehouses({ pageNo: 1, pageSize: 200 })
+}
+
+function renderWarehouse(row: Location): string {
+  if (row.warehouseCode || row.warehouseName) {
+    const code = row.warehouseCode || '-'
+    const name = row.warehouseName || '-'
+    return `${code} - ${name}`
+  }
+  const found = warehouseOptions.value.find((item) => String(item.id) === String(row.warehouseId))
+  if (!found) {
+    return `#${row.warehouseId}`
+  }
+  return `${found.warehouseCode} - ${found.warehouseName}`
 }
 
 async function submitForm(): Promise<void> {
@@ -312,8 +354,9 @@ function nextPage(): void {
   void loadData()
 }
 
-onMounted(() => {
-  void loadData()
+onMounted(async () => {
+  await loadWarehouseOptions()
+  await loadData()
 })
 </script>
 

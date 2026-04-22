@@ -47,7 +47,6 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th>
               <th>编码</th>
               <th>名称</th>
               <th>规格</th>
@@ -59,7 +58,6 @@
           </thead>
           <tbody>
             <tr v-for="row in rows" :key="String(row.id)">
-              <td>{{ row.id }}</td>
               <td>{{ row.materialCode || '-' }}</td>
               <td>{{ row.materialName }}</td>
               <td>{{ row.specification || '-' }}</td>
@@ -78,7 +76,7 @@
               </td>
             </tr>
             <tr v-if="!rows.length">
-              <td class="empty-cell" colspan="8">暂无数据</td>
+              <td class="empty-cell" colspan="7">暂无数据</td>
             </tr>
           </tbody>
         </table>
@@ -92,37 +90,43 @@
       </div>
     </section>
 
-    <div v-if="formVisible" class="dialog-mask" @click.self="closeDialog">
-      <section class="dialog-panel">
-        <h2>{{ formTitle }}</h2>
-        <div class="field-grid">
-          <div class="field">
-            <label>物料名称 *</label>
-            <input v-model.trim="form.materialName" type="text" placeholder="请输入物料名称" />
-          </div>
-          <div class="field">
-            <label>规格型号</label>
-            <input v-model.trim="form.specification" type="text" placeholder="可选" />
-          </div>
-          <div class="field">
-            <label>计量单位</label>
-            <input v-model.trim="form.unit" type="text" placeholder="例如 个 / 箱 / kg" />
-          </div>
-          <div class="field">
-            <label>状态</label>
-            <select v-model.number="form.status">
-              <option :value="0">正常</option>
-              <option :value="1">停用</option>
-            </select>
-          </div>
+    <el-dialog
+      v-model="formVisible"
+      class="wms-dialog"
+      :title="formTitle"
+      width="760px"
+      :close-on-click-modal="false"
+      @closed="resetForm"
+    >
+      <div class="field-grid">
+        <div class="field">
+          <label>物料名称 *</label>
+          <el-input v-model="form.materialName" placeholder="请输入物料名称" />
         </div>
+        <div class="field">
+          <label>规格型号</label>
+          <el-input v-model="form.specification" placeholder="可选" />
+        </div>
+        <div class="field">
+          <label>计量单位</label>
+          <el-input v-model="form.unit" placeholder="例如 个 / 箱 / kg" />
+        </div>
+        <div class="field">
+          <label>状态</label>
+          <el-select v-model="form.status" placeholder="请选择状态">
+            <el-option label="正常" :value="0" />
+            <el-option label="停用" :value="1" />
+          </el-select>
+        </div>
+      </div>
+      <template #footer>
         <div class="actions-row">
           <button class="btn" :disabled="loading" @click="submitForm">{{ isEditing ? '保存修改' : '创建物料' }}</button>
           <button class="btn secondary" :disabled="loading" @click="resetForm">清空表单</button>
           <button class="btn text" :disabled="loading" @click="closeDialog">取消</button>
         </div>
-      </section>
-    </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 

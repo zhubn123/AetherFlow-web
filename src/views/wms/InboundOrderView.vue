@@ -52,9 +52,8 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th>
               <th>单号</th>
-              <th>仓库ID</th>
+              <th>仓库</th>
               <th>状态</th>
               <th>入库时间</th>
               <th>备注</th>
@@ -63,9 +62,8 @@
           </thead>
           <tbody>
             <tr v-for="row in rows" :key="String(row.id)">
-              <td>{{ row.id }}</td>
               <td>{{ row.orderNo }}</td>
-              <td>{{ row.warehouseId }}</td>
+              <td>{{ renderWarehouse(row) }}</td>
               <td>
                 <span class="status-tag" :class="row.status === 1 ? 'normal' : 'disabled'">
                   {{ row.status === 1 ? '已确认' : '草稿' }}
@@ -82,7 +80,7 @@
               </td>
             </tr>
             <tr v-if="!rows.length">
-              <td class="empty-cell" colspan="7">暂无数据</td>
+              <td class="empty-cell" colspan="6">暂无数据</td>
             </tr>
           </tbody>
         </table>
@@ -96,83 +94,95 @@
       </div>
     </section>
 
-    <div v-if="dialogVisible" class="dialog-mask" @click.self="closeDialog">
-      <section class="dialog-panel">
-        <h2>{{ dialogMode === 'create' ? '新建入库单草稿' : '编辑入库单表头' }}</h2>
-        <p v-if="dialogMode === 'edit'" class="muted-tip">当前版本编辑仅修改表头（仓库、备注）；明细编辑待后端明细查询接口补齐后接入。</p>
+    <el-dialog
+      v-model="dialogVisible"
+      class="wms-dialog"
+      :title="dialogMode === 'create' ? '新建入库单草稿' : '编辑入库单表头'"
+      width="980px"
+      :close-on-click-modal="false"
+      @closed="resetForm"
+    >
+      <p v-if="dialogMode === 'edit'" class="muted-tip">当前版本编辑仅修改表头（仓库、备注）；明细编辑待后端明细查询接口补齐后接入。</p>
 
-        <div class="field-grid">
-          <div class="field">
-            <label>仓库 *</label>
-            <select v-model="form.warehouseId">
-              <option value="">请选择仓库</option>
-              <option v-for="item in warehouseOptions" :key="String(item.id)" :value="String(item.id)">
-                {{ item.warehouseCode }} - {{ item.warehouseName }}
-              </option>
-            </select>
-          </div>
-          <div class="field" style="grid-column: span 3;">
-            <label>备注</label>
-            <input v-model.trim="form.remark" type="text" placeholder="可选" />
-          </div>
+      <div class="field-grid">
+        <div class="field">
+          <label>仓库 *</label>
+          <el-select v-model="form.warehouseId" placeholder="请选择仓库">
+            <el-option
+              v-for="item in warehouseOptions"
+              :key="String(item.id)"
+              :label="`${item.warehouseCode} - ${item.warehouseName}`"
+              :value="String(item.id)"
+            />
+          </el-select>
         </div>
+        <div class="field" style="grid-column: span 3;">
+          <label>备注</label>
+          <el-input v-model="form.remark" placeholder="可选" />
+        </div>
+      </div>
 
-        <template v-if="dialogMode === 'create'">
-          <div class="actions-row">
-            <button class="btn secondary" type="button" @click="addItem">新增明细行</button>
-          </div>
-          <div class="table-wrap">
-            <table class="editor-table">
-              <thead>
-                <tr>
-                  <th>行号</th>
-                  <th>物料 *</th>
-                  <th>库位</th>
-                  <th>计划数量 *</th>
-                  <th>备注</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, index) in form.orderItemsBo" :key="index">
-                  <td>{{ index + 1 }}</td>
-                  <td>
-                    <select v-model="item.materialId">
-                      <option value="">请选择物料</option>
-                      <option v-for="m in materialOptions" :key="String(m.id)" :value="String(m.id)">
-                        {{ m.materialCode }} - {{ m.materialName }}
-                      </option>
-                    </select>
-                  </td>
-                  <td>
-                    <select v-model="item.locationId">
-                      <option value="">请选择库位</option>
-                      <option v-for="l in locationOptions" :key="String(l.id)" :value="String(l.id)">
-                        {{ l.locationCode }} - {{ l.locationName }}
-                      </option>
-                    </select>
-                  </td>
-                  <td>
-                    <input v-model.number="item.plannedQty" type="number" min="0.0001" step="0.0001" />
-                  </td>
-                  <td>
-                    <input v-model.trim="item.remark" type="text" placeholder="可选" />
-                  </td>
-                  <td>
-                    <button class="text-link danger" type="button" @click="removeItem(index)">删除</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </template>
+      <template v-if="dialogMode === 'create'">
+        <div class="actions-row">
+          <button class="btn secondary" type="button" @click="addItem">新增明细行</button>
+        </div>
+        <div class="table-wrap">
+          <table class="editor-table">
+            <thead>
+              <tr>
+                <th>行号</th>
+                <th>物料 *</th>
+                <th>库位</th>
+                <th>计划数量 *</th>
+                <th>备注</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, index) in form.orderItemsBo" :key="index">
+                <td>{{ index + 1 }}</td>
+                <td>
+                  <el-select v-model="item.materialId" placeholder="请选择物料">
+                    <el-option
+                      v-for="m in materialOptions"
+                      :key="String(m.id)"
+                      :label="`${m.materialCode} - ${m.materialName}`"
+                      :value="String(m.id)"
+                    />
+                  </el-select>
+                </td>
+                <td>
+                  <el-select v-model="item.locationId" placeholder="请选择库位">
+                    <el-option
+                      v-for="l in locationOptions"
+                      :key="String(l.id)"
+                      :label="`${l.locationCode} - ${l.locationName}`"
+                      :value="String(l.id)"
+                    />
+                  </el-select>
+                </td>
+                <td>
+                  <el-input-number v-model="item.plannedQty" :min="0.0001" :step="0.0001" />
+                </td>
+                <td>
+                  <el-input v-model="item.remark" placeholder="可选" />
+                </td>
+                <td>
+                  <button class="text-link danger" type="button" @click="removeItem(index)">删除</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
 
+      <template #footer>
         <div class="actions-row">
           <button class="btn" :disabled="loading" @click="submitForm">{{ dialogMode === 'create' ? '创建草稿' : '保存修改' }}</button>
           <button class="btn text" :disabled="loading" @click="closeDialog">取消</button>
         </div>
-      </section>
-    </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -288,6 +298,19 @@ function removeItem(index: number): void {
 function normalizeQuery(): void {
   query.warehouseId = queryWarehouseId.value ? queryWarehouseId.value : undefined
   query.status = queryStatus.value === '' ? undefined : Number(queryStatus.value)
+}
+
+function renderWarehouse(row: InboundOrder): string {
+  if (row.warehouseCode || row.warehouseName) {
+    const code = row.warehouseCode || '-'
+    const name = row.warehouseName || '-'
+    return `${code} - ${name}`
+  }
+  const found = warehouseOptions.value.find((item) => String(item.id) === String(row.warehouseId))
+  if (!found) {
+    return `#${row.warehouseId}`
+  }
+  return `${found.warehouseCode} - ${found.warehouseName}`
 }
 
 function resetQuery(): void {

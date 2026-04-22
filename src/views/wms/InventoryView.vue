@@ -14,16 +14,31 @@
       <h2>查询条件</h2>
       <div class="field-grid">
         <div class="field">
-          <label>仓库ID</label>
-          <input v-model.trim="query.warehouseId" type="text" placeholder="可选" />
+          <label>仓库</label>
+          <select v-model="queryWarehouseId">
+            <option value="">全部</option>
+            <option v-for="item in warehouseOptions" :key="String(item.id)" :value="String(item.id)">
+              {{ item.warehouseCode }} - {{ item.warehouseName }}
+            </option>
+          </select>
         </div>
         <div class="field">
-          <label>库位ID</label>
-          <input v-model.trim="query.locationId" type="text" placeholder="可选" />
+          <label>库位</label>
+          <select v-model="queryLocationId">
+            <option value="">全部</option>
+            <option v-for="item in locationOptions" :key="String(item.id)" :value="String(item.id)">
+              {{ item.locationCode }} - {{ item.locationName }}
+            </option>
+          </select>
         </div>
         <div class="field">
-          <label>物料ID</label>
-          <input v-model.trim="query.materialId" type="text" placeholder="可选" />
+          <label>物料</label>
+          <select v-model="queryMaterialId">
+            <option value="">全部</option>
+            <option v-for="item in materialOptions" :key="String(item.id)" :value="String(item.id)">
+              {{ item.materialCode }} - {{ item.materialName }}
+            </option>
+          </select>
         </div>
         <div class="field">
           <label>库存下限</label>
@@ -47,25 +62,23 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>仓库ID</th>
-              <th>库位ID</th>
-              <th>物料ID</th>
+              <th>仓库</th>
+              <th>库位</th>
+              <th>物料</th>
               <th>当前库存</th>
               <th>锁定库存</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="row in rows" :key="String(row.id)">
-              <td>{{ row.id }}</td>
-              <td>{{ row.warehouseId }}</td>
-              <td>{{ row.locationId }}</td>
-              <td>{{ row.materialId }}</td>
+              <td>{{ renderWarehouse(row) }}</td>
+              <td>{{ renderLocation(row) }}</td>
+              <td>{{ renderMaterial(row) }}</td>
               <td>{{ row.quantity }}</td>
               <td>{{ row.lockedQuantity }}</td>
             </tr>
             <tr v-if="!rows.length">
-              <td class="empty-cell" colspan="6">暂无数据</td>
+              <td class="empty-cell" colspan="5">暂无数据</td>
             </tr>
           </tbody>
         </table>
@@ -85,21 +98,27 @@
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import WmsNav from '@/components/WmsNav.vue'
-import { queryInventories, type InventoryQuery } from '@/api/wms'
-import type { Inventory } from '@/types/wms'
+import { queryInventories, queryLocations, queryMaterials, queryWarehouses, type InventoryQuery } from '@/api/wms'
+import type { Inventory, Location, Material, Warehouse } from '@/types/wms'
 
 const loading = ref(false)
 const rows = ref<Inventory[]>([])
 const total = ref(0)
 const pages = ref(0)
 const errorMessage = ref('')
+const queryWarehouseId = ref('')
+const queryLocationId = ref('')
+const queryMaterialId = ref('')
+const warehouseOptions = ref<Warehouse[]>([])
+const locationOptions = ref<Location[]>([])
+const materialOptions = ref<Material[]>([])
 
 const query = reactive<InventoryQuery>({
   pageNo: 1,
   pageSize: 10,
-  warehouseId: '',
-  locationId: '',
-  materialId: '',
+  warehouseId: undefined,
+  locationId: undefined,
+  materialId: undefined,
   minQuantity: undefined,
   maxQuantity: undefined
 })
@@ -113,11 +132,20 @@ function normalizeNumberRange(): void {
   }
 }
 
+function normalizeQuery(): void {
+  query.warehouseId = queryWarehouseId.value ? queryWarehouseId.value : undefined
+  query.locationId = queryLocationId.value ? queryLocationId.value : undefined
+  query.materialId = queryMaterialId.value ? queryMaterialId.value : undefined
+}
+
 function resetQuery(): void {
   query.pageNo = 1
-  query.warehouseId = ''
-  query.locationId = ''
-  query.materialId = ''
+  queryWarehouseId.value = ''
+  queryLocationId.value = ''
+  queryMaterialId.value = ''
+  query.warehouseId = undefined
+  query.locationId = undefined
+  query.materialId = undefined
   query.minQuantity = undefined
   query.maxQuantity = undefined
   void loadData()
@@ -130,6 +158,7 @@ function handleSearch(): void {
 
 async function loadData(): Promise<void> {
   errorMessage.value = ''
+  normalizeQuery()
   normalizeNumberRange()
   loading.value = true
   try {
@@ -144,6 +173,56 @@ async function loadData(): Promise<void> {
   } finally {
     loading.value = false
   }
+}
+
+async function loadOptions(): Promise<void> {
+  const [warehouses, locationsPage, materialsPage] = await Promise.all([
+    queryWarehouses({ pageNo: 1, pageSize: 200 }),
+    queryLocations({ pageNo: 1, pageSize: 200, status: 0 }),
+    queryMaterials({ pageNo: 1, pageSize: 200, status: 0 })
+  ])
+  warehouseOptions.value = warehouses
+  locationOptions.value = locationsPage.records
+  materialOptions.value = materialsPage.records
+}
+
+function renderWarehouse(row: Inventory): string {
+  if (row.warehouseCode || row.warehouseName) {
+    const code = row.warehouseCode || '-'
+    const name = row.warehouseName || '-'
+    return `${code} - ${name}`
+  }
+  const found = warehouseOptions.value.find((item) => String(item.id) === String(row.warehouseId))
+  if (!found) {
+    return `#${row.warehouseId}`
+  }
+  return `${found.warehouseCode} - ${found.warehouseName}`
+}
+
+function renderLocation(row: Inventory): string {
+  if (row.locationCode || row.locationName) {
+    const code = row.locationCode || '-'
+    const name = row.locationName || '-'
+    return `${code} - ${name}`
+  }
+  const found = locationOptions.value.find((item) => String(item.id) === String(row.locationId))
+  if (!found) {
+    return `#${row.locationId}`
+  }
+  return `${found.locationCode} - ${found.locationName}`
+}
+
+function renderMaterial(row: Inventory): string {
+  if (row.materialCode || row.materialName) {
+    const code = row.materialCode || '-'
+    const name = row.materialName || '-'
+    return `${code} - ${name}`
+  }
+  const found = materialOptions.value.find((item) => String(item.id) === String(row.materialId))
+  if (!found) {
+    return `#${row.materialId}`
+  }
+  return `${found.materialCode} - ${found.materialName}`
 }
 
 function prevPage(): void {
@@ -162,8 +241,9 @@ function nextPage(): void {
   void loadData()
 }
 
-onMounted(() => {
-  void loadData()
+onMounted(async () => {
+  await loadOptions()
+  await loadData()
 })
 </script>
 
