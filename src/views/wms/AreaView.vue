@@ -2,8 +2,8 @@
   <div class="wms-page">
     <header class="page-header">
       <div>
-        <h1>库位管理</h1>
-        <p>维护仓库下的区域库位结构，支撑入库、出库与库存定位。</p>
+        <h1>区域管理</h1>
+        <p>维护仓库下业务分区，形成仓库 -> 区域 -> 库位的主数据层级。</p>
       </div>
       <RouterLink to="/dashboard" class="btn ghost">返回首页</RouterLink>
     </header>
@@ -15,7 +15,7 @@
       <div class="field-grid">
         <div class="field">
           <label>仓库</label>
-          <el-select v-model="queryWarehouseId" placeholder="全部" clearable @change="onQueryWarehouseChange">
+          <el-select v-model="queryWarehouseId" placeholder="全部" clearable>
             <el-option
               v-for="item in warehouseOptions"
               :key="String(item.id)"
@@ -25,23 +25,16 @@
           </el-select>
         </div>
         <div class="field">
-          <label>区域</label>
-          <el-select v-model="queryAreaId" placeholder="全部" clearable>
-            <el-option
-              v-for="item in queryAreaOptions"
-              :key="String(item.id)"
-              :label="`${item.areaCode} - ${item.areaName}`"
-              :value="String(item.id)"
-            />
-          </el-select>
+          <label>区域编码</label>
+          <el-input v-model="query.areaCode" placeholder="支持精确匹配" />
         </div>
         <div class="field">
-          <label>库位编码</label>
-          <el-input v-model="query.locationCode" placeholder="支持精确匹配" />
+          <label>区域名称</label>
+          <el-input v-model="query.areaName" placeholder="支持模糊匹配" />
         </div>
         <div class="field">
-          <label>库位名称</label>
-          <el-input v-model="query.locationName" placeholder="支持模糊匹配" />
+          <label>区域类型</label>
+          <el-input v-model="query.areaType" placeholder="例如 STORAGE / RECEIVING" />
         </div>
         <div class="field">
           <label>状态</label>
@@ -58,20 +51,20 @@
     </section>
 
     <section class="panel">
-      <h2>库位列表</h2>
+      <h2>区域列表</h2>
       <div v-if="successMessage" class="message success">{{ successMessage }}</div>
       <div v-if="errorMessage" class="message error">{{ errorMessage }}</div>
       <div class="actions-row">
-        <button class="btn" :disabled="loading" @click="openCreateDialog">新增库位</button>
+        <button class="btn" :disabled="loading" @click="openCreateDialog">新增区域</button>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>仓库</th>
-              <th>区域</th>
-              <th>编码</th>
-              <th>名称</th>
+              <th>区域编码</th>
+              <th>区域名称</th>
+              <th>区域类型</th>
               <th>状态</th>
               <th>备注</th>
               <th>操作</th>
@@ -80,9 +73,9 @@
           <tbody>
             <tr v-for="row in rows" :key="String(row.id)">
               <td>{{ renderWarehouse(row) }}</td>
-              <td>{{ renderArea(row) }}</td>
-              <td>{{ row.locationCode || '-' }}</td>
-              <td>{{ row.locationName }}</td>
+              <td>{{ row.areaCode || '-' }}</td>
+              <td>{{ row.areaName }}</td>
+              <td>{{ row.areaType || '-' }}</td>
               <td>
                 <span class="status-tag" :class="row.status === 1 ? 'disabled' : 'normal'">
                   {{ row.status === 1 ? '停用' : '正常' }}
@@ -122,7 +115,7 @@
       <div class="field-grid">
         <div class="field">
           <label>仓库 *</label>
-          <el-select v-model="form.warehouseId" placeholder="请选择仓库" @change="onFormWarehouseChange">
+          <el-select v-model="form.warehouseId" placeholder="请选择仓库">
             <el-option
               v-for="item in warehouseOptions"
               :key="String(item.id)"
@@ -132,19 +125,12 @@
           </el-select>
         </div>
         <div class="field">
-          <label>区域 *</label>
-          <el-select v-model="form.areaId" placeholder="请选择区域">
-            <el-option
-              v-for="item in formAreaOptions"
-              :key="String(item.id)"
-              :label="`${item.areaCode} - ${item.areaName}`"
-              :value="String(item.id)"
-            />
-          </el-select>
+          <label>区域名称 *</label>
+          <el-input v-model="form.areaName" placeholder="请输入区域名称" />
         </div>
         <div class="field">
-          <label>库位名称 *</label>
-          <el-input v-model="form.locationName" placeholder="请输入库位名称" />
+          <label>区域类型</label>
+          <el-input v-model="form.areaType" placeholder="例如 STORAGE / RECEIVING" />
         </div>
         <div class="field">
           <label>状态</label>
@@ -160,7 +146,7 @@
       </div>
       <template #footer>
         <div class="actions-row">
-          <button class="btn" :disabled="loading" @click="submitForm">{{ isEditing ? '保存修改' : '创建库位' }}</button>
+          <button class="btn" :disabled="loading" @click="submitForm">{{ isEditing ? '保存修改' : '创建区域' }}</button>
           <button class="btn secondary" :disabled="loading" @click="resetForm">清空表单</button>
           <button class="btn text" :disabled="loading" @click="closeDialog">取消</button>
         </div>
@@ -173,11 +159,11 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import WmsNav from '@/components/WmsNav.vue'
-import { createLocation, queryAreas, queryLocations, queryWarehouses, removeLocations, updateLocation, type LocationQuery } from '@/api/wms'
-import type { Area, Location, Warehouse } from '@/types/wms'
+import { createArea, queryAreas, queryWarehouses, removeAreas, updateArea, type AreaQuery } from '@/api/wms'
+import type { Area, Warehouse } from '@/types/wms'
 
 const loading = ref(false)
-const rows = ref<Location[]>([])
+const rows = ref<Area[]>([])
 const total = ref(0)
 const pages = ref(0)
 const successMessage = ref('')
@@ -186,92 +172,54 @@ const isEditing = ref(false)
 const formVisible = ref(false)
 const statusFilter = ref('')
 const queryWarehouseId = ref('')
-const queryAreaId = ref('')
 const warehouseOptions = ref<Warehouse[]>([])
-const queryAreaOptions = ref<Area[]>([])
-const formAreaOptions = ref<Area[]>([])
 
-const query = reactive<LocationQuery>({
+const query = reactive<AreaQuery>({
   pageNo: 1,
   pageSize: 10,
   warehouseId: undefined,
-  areaId: undefined,
-  locationCode: '',
-  locationName: '',
+  areaCode: '',
+  areaName: '',
+  areaType: '',
   status: undefined
 })
 
-const form = reactive<Partial<Location>>({
+const form = reactive<Partial<Area>>({
   id: undefined,
   warehouseId: '',
-  areaId: '',
-  locationName: '',
+  areaName: '',
+  areaType: '',
   status: 0,
   remark: ''
 })
 
-const formTitle = computed(() => (isEditing.value ? '编辑库位' : '新增库位'))
+const formTitle = computed(() => (isEditing.value ? '编辑区域' : '新增区域'))
 
 function clearMessages(): void {
   successMessage.value = ''
   errorMessage.value = ''
 }
 
-function normalizeStatusFilter(): void {
+function normalizeQuery(): void {
+  query.warehouseId = queryWarehouseId.value ? queryWarehouseId.value : undefined
   query.status = statusFilter.value === '' ? undefined : Number(statusFilter.value)
 }
 
-function normalizeWarehouseAndAreaFilter(): void {
-  query.warehouseId = queryWarehouseId.value ? queryWarehouseId.value : undefined
-  query.areaId = queryAreaId.value ? queryAreaId.value : undefined
-}
-
-async function loadQueryAreaOptions(warehouseId?: string): Promise<void> {
-  if (!warehouseId) {
-    queryAreaOptions.value = []
-    return
-  }
-  const result = await queryAreas({ pageNo: 1, pageSize: 200, warehouseId })
-  queryAreaOptions.value = result.records
-}
-
-async function loadFormAreaOptions(warehouseId?: string): Promise<void> {
-  if (!warehouseId) {
-    formAreaOptions.value = []
-    return
-  }
-  const result = await queryAreas({ pageNo: 1, pageSize: 200, warehouseId })
-  formAreaOptions.value = result.records
-}
-
-async function onQueryWarehouseChange(): Promise<void> {
-  queryAreaId.value = ''
-  await loadQueryAreaOptions(queryWarehouseId.value || undefined)
-}
-
-async function onFormWarehouseChange(): Promise<void> {
-  form.areaId = ''
-  await loadFormAreaOptions(form.warehouseId ? String(form.warehouseId) : undefined)
+function handleSearch(): void {
+  query.pageNo = 1
+  normalizeQuery()
+  void loadData()
 }
 
 function resetQuery(): void {
   query.pageNo = 1
   queryWarehouseId.value = ''
-  queryAreaId.value = ''
-  query.warehouseId = undefined
-  query.areaId = undefined
-  query.locationCode = ''
-  query.locationName = ''
   statusFilter.value = ''
+  query.warehouseId = undefined
   query.status = undefined
-  queryAreaOptions.value = []
-  void loadData()
-}
-
-function handleSearch(): void {
-  query.pageNo = 1
-  normalizeWarehouseAndAreaFilter()
-  normalizeStatusFilter()
+  query.areaCode = ''
+  query.areaName = ''
+  query.areaType = ''
   void loadData()
 }
 
@@ -279,11 +227,10 @@ function resetForm(): void {
   isEditing.value = false
   form.id = undefined
   form.warehouseId = ''
-  form.areaId = ''
-  form.locationName = ''
+  form.areaName = ''
+  form.areaType = ''
   form.status = 0
   form.remark = ''
-  formAreaOptions.value = []
 }
 
 function closeDialog(): void {
@@ -297,43 +244,19 @@ function openCreateDialog(): void {
   formVisible.value = true
 }
 
-async function startEdit(row: Location): Promise<void> {
+function startEdit(row: Area): void {
   clearMessages()
   formVisible.value = true
   isEditing.value = true
   form.id = row.id
   form.warehouseId = String(row.warehouseId)
-  await loadFormAreaOptions(form.warehouseId ? String(form.warehouseId) : undefined)
-  form.areaId = String(row.areaId)
-  form.locationName = row.locationName
+  form.areaName = row.areaName
+  form.areaType = row.areaType || ''
   form.status = row.status ?? 0
   form.remark = row.remark || ''
 }
 
-async function loadData(): Promise<void> {
-  clearMessages()
-  normalizeWarehouseAndAreaFilter()
-  normalizeStatusFilter()
-  loading.value = true
-  try {
-    const result = await queryLocations(query)
-    rows.value = result.records
-    total.value = result.total
-    pages.value = Math.max(result.pages, 1)
-    query.pageNo = result.pageNo
-    query.pageSize = result.pageSize
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : '库位列表加载失败'
-  } finally {
-    loading.value = false
-  }
-}
-
-async function loadWarehouseOptions(): Promise<void> {
-  warehouseOptions.value = await queryWarehouses({ pageNo: 1, pageSize: 200 })
-}
-
-function renderWarehouse(row: Location): string {
+function renderWarehouse(row: Area): string {
   if (row.warehouseCode || row.warehouseName) {
     const code = row.warehouseCode || '-'
     const name = row.warehouseName || '-'
@@ -346,17 +269,26 @@ function renderWarehouse(row: Location): string {
   return `${found.warehouseCode} - ${found.warehouseName}`
 }
 
-function renderArea(row: Location): string {
-  if (row.areaCode || row.areaName) {
-    const code = row.areaCode || '-'
-    const name = row.areaName || '-'
-    return `${code} - ${name}`
+async function loadWarehouseOptions(): Promise<void> {
+  warehouseOptions.value = await queryWarehouses({ pageNo: 1, pageSize: 200 })
+}
+
+async function loadData(): Promise<void> {
+  clearMessages()
+  normalizeQuery()
+  loading.value = true
+  try {
+    const result = await queryAreas(query)
+    rows.value = result.records
+    total.value = result.total
+    pages.value = Math.max(result.pages, 1)
+    query.pageNo = result.pageNo
+    query.pageSize = result.pageSize
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '区域列表加载失败'
+  } finally {
+    loading.value = false
   }
-  const found = queryAreaOptions.value.find((item) => String(item.id) === String(row.areaId))
-  if (!found) {
-    return `#${row.areaId}`
-  }
-  return `${found.areaCode} - ${found.areaName}`
 }
 
 async function submitForm(): Promise<void> {
@@ -365,35 +297,31 @@ async function submitForm(): Promise<void> {
     errorMessage.value = '仓库不能为空'
     return
   }
-  if (!form.areaId) {
-    errorMessage.value = '区域不能为空'
-    return
-  }
-  if (!form.locationName) {
-    errorMessage.value = '库位名称不能为空'
+  if (!form.areaName) {
+    errorMessage.value = '区域名称不能为空'
     return
   }
 
   loading.value = true
   try {
     if (isEditing.value && form.id !== undefined) {
-      await updateLocation(form.id, {
+      await updateArea(form.id, {
         warehouseId: form.warehouseId,
-        areaId: form.areaId,
-        locationName: form.locationName,
+        areaName: form.areaName,
+        areaType: form.areaType,
         status: form.status ?? 0,
         remark: form.remark
       })
-      successMessage.value = '库位更新成功'
+      successMessage.value = '区域更新成功'
     } else {
-      await createLocation({
+      await createArea({
         warehouseId: form.warehouseId,
-        areaId: form.areaId,
-        locationName: form.locationName,
+        areaName: form.areaName,
+        areaType: form.areaType,
         status: form.status ?? 0,
         remark: form.remark
       })
-      successMessage.value = '库位创建成功'
+      successMessage.value = '区域创建成功'
     }
     closeDialog()
     await loadData()
@@ -404,17 +332,17 @@ async function submitForm(): Promise<void> {
   }
 }
 
-async function removeRow(row: Location): Promise<void> {
+async function removeRow(row: Area): Promise<void> {
   clearMessages()
-  const confirmed = window.confirm(`确认删除库位「${row.locationName}」吗？`)
+  const confirmed = window.confirm(`确认删除区域「${row.areaName}」吗？`)
   if (!confirmed) {
     return
   }
 
   loading.value = true
   try {
-    await removeLocations([row.id])
-    successMessage.value = '库位删除成功'
+    await removeAreas([row.id])
+    successMessage.value = '区域删除成功'
     await loadData()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '删除失败'

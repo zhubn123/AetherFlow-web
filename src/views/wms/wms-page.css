@@ -69,6 +69,18 @@
   background: #fff;
 }
 
+.field :deep(.el-select),
+.field :deep(.el-input),
+.field :deep(.el-input-number) {
+  width: 100%;
+}
+
+.field :deep(.el-input__wrapper),
+.field :deep(.el-select__wrapper),
+.field :deep(.el-input-number .el-input__wrapper) {
+  min-height: 38px;
+}
+
 .actions-row {
   margin-top: 10px;
   display: flex;

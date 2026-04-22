@@ -16,11 +16,26 @@ export interface Warehouse {
   remark?: string
 }
 
+export interface Area {
+  id: IdValue
+  warehouseId: IdValue
+  warehouseCode?: string
+  warehouseName?: string
+  areaCode: string
+  areaName: string
+  areaType?: string
+  status: number
+  remark?: string
+}
+
 export interface Location {
   id: IdValue
   warehouseId: IdValue
   warehouseCode?: string
   warehouseName?: string
+  areaId: IdValue
+  areaCode?: string
+  areaName?: string
   locationCode: string
   locationName: string
   status: number
@@ -43,6 +58,9 @@ export interface Inventory {
   warehouseCode?: string
   warehouseName?: string
   locationId: IdValue
+  areaId?: IdValue
+  areaCode?: string
+  areaName?: string
   locationCode?: string
   locationName?: string
   materialId: IdValue

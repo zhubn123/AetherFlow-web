@@ -27,6 +27,11 @@ export const constantRoutes = [
         meta: { requiresAuth: true }
     },
     {
+        path: '/wms/areas',
+        component: () => import('@/views/wms/AreaView.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
         path: '/wms/materials',
         component: () => import('@/views/wms/MaterialView.vue'),
         meta: { requiresAuth: true }

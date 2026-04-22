@@ -1,5 +1,6 @@
 import { requestApi } from '@/utils/request'
 import type {
+  Area,
   IdValue,
   InboundOrder,
   InboundOrderItem,
@@ -29,8 +30,19 @@ export interface LocationQuery {
   pageNo?: number
   pageSize?: number
   warehouseId?: IdValue
+  areaId?: IdValue
   locationCode?: string
   locationName?: string
+  status?: number
+}
+
+export interface AreaQuery {
+  pageNo?: number
+  pageSize?: number
+  warehouseId?: IdValue
+  areaCode?: string
+  areaName?: string
+  areaType?: string
   status?: number
 }
 
@@ -46,6 +58,7 @@ export interface InventoryQuery {
   pageNo?: number
   pageSize?: number
   warehouseId?: IdValue
+  areaId?: IdValue
   locationId?: IdValue
   materialId?: IdValue
   minQuantity?: number
@@ -57,6 +70,7 @@ export interface InboundOrderQuery {
   pageSize?: number
   orderNo?: string
   warehouseId?: IdValue
+  areaId?: IdValue
   status?: number
 }
 
@@ -65,6 +79,7 @@ export interface OutboundOrderQuery {
   pageSize?: number
   orderNo?: string
   warehouseId?: IdValue
+  areaId?: IdValue
   status?: number
 }
 
@@ -116,6 +131,37 @@ export function queryLocations(query: LocationQuery): Promise<PageResult<Locatio
     url: '/wms/locations',
     method: 'get',
     params: query
+  })
+}
+
+export function queryAreas(query: AreaQuery): Promise<PageResult<Area>> {
+  return requestApi<PageResult<Area>>({
+    url: '/wms/areas',
+    method: 'get',
+    params: query
+  })
+}
+
+export function createArea(data: Partial<Area>): Promise<number> {
+  return requestApi<number>({
+    url: '/wms/areas',
+    method: 'post',
+    data
+  })
+}
+
+export function updateArea(id: IdValue, data: Partial<Area>): Promise<boolean> {
+  return requestApi<boolean>({
+    url: `/wms/areas/${id}`,
+    method: 'put',
+    data
+  })
+}
+
+export function removeAreas(ids: IdValue[]): Promise<boolean> {
+  return requestApi<boolean>({
+    url: `/wms/areas?${buildIdsQuery(ids)}`,
+    method: 'delete'
   })
 }
 

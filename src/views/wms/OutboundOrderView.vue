@@ -15,24 +15,36 @@
       <div class="field-grid">
         <div class="field">
           <label>单号</label>
-          <input v-model.trim="query.orderNo" type="text" placeholder="支持模糊匹配" />
+          <el-input v-model="query.orderNo" placeholder="支持模糊匹配" />
         </div>
         <div class="field">
           <label>仓库</label>
-          <select v-model="queryWarehouseId">
-            <option value="">全部</option>
-            <option v-for="item in warehouseOptions" :key="String(item.id)" :value="String(item.id)">
-              {{ item.warehouseCode }} - {{ item.warehouseName }}
-            </option>
-          </select>
+          <el-select v-model="queryWarehouseId" placeholder="全部" clearable @change="onQueryWarehouseChange">
+            <el-option
+              v-for="item in warehouseOptions"
+              :key="String(item.id)"
+              :label="`${item.warehouseCode} - ${item.warehouseName}`"
+              :value="String(item.id)"
+            />
+          </el-select>
+        </div>
+        <div class="field">
+          <label>区域</label>
+          <el-select v-model="queryAreaId" placeholder="全部" clearable>
+            <el-option
+              v-for="item in queryAreaOptions"
+              :key="String(item.id)"
+              :label="`${item.areaCode} - ${item.areaName}`"
+              :value="String(item.id)"
+            />
+          </el-select>
         </div>
         <div class="field">
           <label>状态</label>
-          <select v-model="queryStatus">
-            <option value="">全部</option>
-            <option value="0">草稿</option>
-            <option value="1">已确认</option>
-          </select>
+          <el-select v-model="queryStatus" placeholder="全部" clearable>
+            <el-option label="草稿" value="0" />
+            <el-option label="已确认" value="1" />
+          </el-select>
         </div>
       </div>
       <div class="actions-row">
@@ -107,7 +119,7 @@
       <div class="field-grid">
         <div class="field">
           <label>仓库 *</label>
-          <el-select v-model="form.warehouseId" placeholder="请选择仓库">
+          <el-select v-model="form.warehouseId" placeholder="请选择仓库" @change="onFormWarehouseChange">
             <el-option
               v-for="item in warehouseOptions"
               :key="String(item.id)"
@@ -116,7 +128,18 @@
             />
           </el-select>
         </div>
-        <div class="field" style="grid-column: span 3;">
+        <div v-if="dialogMode === 'create'" class="field">
+          <label>区域 *</label>
+          <el-select v-model="form.areaId" placeholder="请选择区域" @change="onFormAreaChange">
+            <el-option
+              v-for="item in formAreaOptions"
+              :key="String(item.id)"
+              :label="`${item.areaCode} - ${item.areaName}`"
+              :value="String(item.id)"
+            />
+          </el-select>
+        </div>
+        <div class="field" :style="dialogMode === 'create' ? 'grid-column: span 2;' : 'grid-column: span 3;'">
           <label>备注</label>
           <el-input v-model="form.remark" placeholder="可选" />
         </div>
@@ -132,7 +155,7 @@
               <tr>
                 <th>行号</th>
                 <th>物料 *</th>
-                <th>库位</th>
+                <th>库位 *</th>
                 <th>计划数量 *</th>
                 <th>备注</th>
                 <th>操作</th>
@@ -193,6 +216,7 @@ import WmsNav from '@/components/WmsNav.vue'
 import {
   confirmOutboundOrder,
   createOutboundOrder,
+  queryAreas,
   queryLocations,
   queryMaterials,
   queryOutboundOrders,
@@ -201,13 +225,14 @@ import {
   updateOutboundOrder,
   type OutboundOrderQuery
 } from '@/api/wms'
-import type { IdValue, Location, Material, OutboundOrder, OutboundOrderItem, Warehouse } from '@/types/wms'
+import type { Area, IdValue, Location, Material, OutboundOrder, OutboundOrderItem, Warehouse } from '@/types/wms'
 
 type DialogMode = 'create' | 'edit'
 
 interface OutboundDraftForm {
   id?: IdValue
   warehouseId: string
+  areaId: string
   remark: string
   orderItemsBo: OutboundOrderItem[]
 }
@@ -222,9 +247,12 @@ const errorMessage = ref('')
 const dialogVisible = ref(false)
 const dialogMode = ref<DialogMode>('create')
 const queryWarehouseId = ref('')
+const queryAreaId = ref('')
 const queryStatus = ref('')
 
 const warehouseOptions = ref<Warehouse[]>([])
+const queryAreaOptions = ref<Area[]>([])
+const formAreaOptions = ref<Area[]>([])
 const locationOptions = ref<Location[]>([])
 const materialOptions = ref<Material[]>([])
 
@@ -233,12 +261,14 @@ const query = reactive<OutboundOrderQuery>({
   pageSize: 10,
   orderNo: '',
   warehouseId: undefined,
+  areaId: undefined,
   status: undefined
 })
 
 const form = reactive<OutboundDraftForm>({
   id: undefined,
   warehouseId: '',
+  areaId: '',
   remark: '',
   orderItemsBo: []
 })
@@ -251,8 +281,11 @@ function clearMessages(): void {
 function resetForm(): void {
   form.id = undefined
   form.warehouseId = ''
+  form.areaId = ''
   form.remark = ''
   form.orderItemsBo = []
+  formAreaOptions.value = []
+  locationOptions.value = []
 }
 
 function closeDialog(): void {
@@ -260,7 +293,7 @@ function closeDialog(): void {
   resetForm()
 }
 
-function openCreateDialog(): void {
+async function openCreateDialog(): Promise<void> {
   clearMessages()
   dialogMode.value = 'create'
   resetForm()
@@ -268,13 +301,16 @@ function openCreateDialog(): void {
   dialogVisible.value = true
 }
 
-function startEdit(row: OutboundOrder): void {
+async function startEdit(row: OutboundOrder): Promise<void> {
   clearMessages()
   dialogMode.value = 'edit'
   form.id = row.id
   form.warehouseId = String(row.warehouseId)
+  form.areaId = ''
   form.remark = row.remark || ''
   form.orderItemsBo = []
+  await loadFormAreaOptions(form.warehouseId)
+  await loadLocationOptions()
   dialogVisible.value = true
 }
 
@@ -297,7 +333,62 @@ function removeItem(index: number): void {
 
 function normalizeQuery(): void {
   query.warehouseId = queryWarehouseId.value ? queryWarehouseId.value : undefined
+  query.areaId = queryAreaId.value ? queryAreaId.value : undefined
   query.status = queryStatus.value === '' ? undefined : Number(queryStatus.value)
+}
+
+async function loadQueryAreaOptions(): Promise<void> {
+  if (!queryWarehouseId.value) {
+    queryAreaOptions.value = []
+    return
+  }
+  const result = await queryAreas({ pageNo: 1, pageSize: 200, warehouseId: queryWarehouseId.value, status: 0 })
+  queryAreaOptions.value = result.records
+}
+
+async function loadFormAreaOptions(warehouseId?: string): Promise<void> {
+  if (!warehouseId) {
+    formAreaOptions.value = []
+    return
+  }
+  const result = await queryAreas({ pageNo: 1, pageSize: 200, warehouseId, status: 0 })
+  formAreaOptions.value = result.records
+}
+
+async function loadLocationOptions(): Promise<void> {
+  if (!form.warehouseId || !form.areaId) {
+    locationOptions.value = []
+    return
+  }
+  const result = await queryLocations({
+    pageNo: 1,
+    pageSize: 200,
+    warehouseId: form.warehouseId,
+    areaId: form.areaId,
+    status: 0
+  })
+  locationOptions.value = result.records
+}
+
+async function onQueryWarehouseChange(): Promise<void> {
+  queryAreaId.value = ''
+  await loadQueryAreaOptions()
+}
+
+async function onFormWarehouseChange(): Promise<void> {
+  form.areaId = ''
+  form.orderItemsBo.forEach((item) => {
+    item.locationId = ''
+  })
+  await loadFormAreaOptions(form.warehouseId || undefined)
+  locationOptions.value = []
+}
+
+async function onFormAreaChange(): Promise<void> {
+  form.orderItemsBo.forEach((item) => {
+    item.locationId = ''
+  })
+  await loadLocationOptions()
 }
 
 function renderWarehouse(row: OutboundOrder): string {
@@ -317,9 +408,12 @@ function resetQuery(): void {
   query.pageNo = 1
   query.orderNo = ''
   queryWarehouseId.value = ''
+  queryAreaId.value = ''
   queryStatus.value = ''
   query.warehouseId = undefined
+  query.areaId = undefined
   query.status = undefined
+  queryAreaOptions.value = []
   void loadData()
 }
 
@@ -330,14 +424,12 @@ function handleSearch(): void {
 }
 
 async function loadOptions(): Promise<void> {
-  const [warehouses, materialsPage, locationsPage] = await Promise.all([
+  const [warehouses, materialsPage] = await Promise.all([
     queryWarehouses({ pageNo: 1, pageSize: 200 }),
-    queryMaterials({ pageNo: 1, pageSize: 200, status: 0 }),
-    queryLocations({ pageNo: 1, pageSize: 200, status: 0 })
+    queryMaterials({ pageNo: 1, pageSize: 200, status: 0 })
   ])
   warehouseOptions.value = warehouses
   materialOptions.value = materialsPage.records
-  locationOptions.value = locationsPage.records
 }
 
 async function loadData(): Promise<void> {
@@ -363,11 +455,17 @@ function validateCreateForm(): boolean {
     errorMessage.value = '请选择仓库'
     return false
   }
+  if (!form.areaId) {
+    errorMessage.value = '请选择区域'
+    return false
+  }
   if (!form.orderItemsBo.length) {
     errorMessage.value = '出库单明细不能为空'
     return false
   }
-  const invalidIndex = form.orderItemsBo.findIndex((item) => !item.materialId || !item.plannedQty || Number(item.plannedQty) <= 0)
+  const invalidIndex = form.orderItemsBo.findIndex(
+    (item) => !item.materialId || !item.locationId || !item.plannedQty || Number(item.plannedQty) <= 0
+  )
   if (invalidIndex >= 0) {
     errorMessage.value = `第 ${invalidIndex + 1} 行明细未填写完整`
     return false
@@ -386,7 +484,7 @@ async function submitForm(): Promise<void> {
       const payloadItems = form.orderItemsBo.map((item, index) => ({
         lineNo: index + 1,
         materialId: item.materialId,
-        locationId: item.locationId || undefined,
+        locationId: item.locationId,
         plannedQty: item.plannedQty,
         remark: item.remark || undefined
       }))
