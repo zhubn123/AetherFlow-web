@@ -113,7 +113,7 @@ const userStore = useUserStore()
 const router = useRouter()
 const searchKeyword = ref('')
 
-const displayName = computed(() => userStore.userInfo?.username || 'admin')
+const displayName = computed(() => userStore.userInfo?.nickname || userStore.userInfo?.username || 'admin')
 const currentDateText = computed(() => {
   const now = new Date()
   return new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(now)
@@ -207,7 +207,7 @@ async function handleUserCommand(command: string): Promise<void> {
       return
     }
 
-    userStore.logout()
+    await userStore.logout()
     ElMessage.success('已退出登录')
     void router.push('/login')
   }

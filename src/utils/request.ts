@@ -27,6 +27,11 @@ request.interceptors.request.use((config) => {
 request.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error?.response?.status === ResultCode.UNAUTHORIZED) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user_info')
+      localStorage.removeItem('roles')
+    }
     const message = error?.response?.data?.message || error?.message || '网络请求失败'
     return Promise.reject(new Error(message))
   }
@@ -37,6 +42,11 @@ export async function requestApi<T>(config: AxiosRequestConfig): Promise<T> {
   const result = response.data
 
   if (result.code !== ResultCode.SUCCESS) {
+    if (result.code === ResultCode.UNAUTHORIZED) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user_info')
+      localStorage.removeItem('roles')
+    }
     throw new Error(result.message || '请求失败')
   }
 

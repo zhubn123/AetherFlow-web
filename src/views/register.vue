@@ -22,7 +22,7 @@
           </el-form-item>
 
           <el-form-item label="密码">
-            <el-input v-model="form.password" type="password" show-password placeholder="请输入密码（至少 6 位）" />
+            <el-input v-model="form.password" type="password" show-password placeholder="请输入密码（至少 8 位，含字母+数字）" />
           </el-form-item>
 
           <el-form-item label="确认密码">
@@ -75,8 +75,14 @@ async function submitRegister(): Promise<void> {
     errorMessage.value = '请输入用户名'
     return
   }
-  if (!form.password || form.password.length < 6) {
-    errorMessage.value = '密码至少 6 位'
+  if (!form.password || form.password.length < 8) {
+    errorMessage.value = '密码至少 8 位'
+    return
+  }
+  const hasLetter = /[A-Za-z]/.test(form.password)
+  const hasDigit = /\d/.test(form.password)
+  if (!hasLetter || !hasDigit) {
+    errorMessage.value = '密码必须包含字母和数字'
     return
   }
   if (confirmPassword.value !== form.password) {
@@ -86,12 +92,12 @@ async function submitRegister(): Promise<void> {
 
   submitting.value = true
   try {
-    await registerApi({
+    const userId = await registerApi({
       username: form.username,
       password: form.password,
       email: form.email || undefined
     })
-    ElMessage.success('注册成功，请登录')
+    ElMessage.success(`注册成功（用户ID：${userId}），请登录`)
     void router.push('/login')
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '注册失败'

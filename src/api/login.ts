@@ -8,27 +8,50 @@ export interface LoginRequest {
 export interface UserInfo {
     id: string
     username: string
-    email: string
+    nickname?: string
+    email?: string
+    phone?: string
 }
 
 export interface LoginResponse {
     token: string
     userInfo: UserInfo
+    roles: string[]
 }
 
 export const loginApi = async (data: LoginRequest): Promise<LoginResponse> => {
-    const token = await requestApi<string>({
-        url: '/login',
+    const result = await requestApi<{
+        token: string
+        userInfo: {
+            id: number | string
+            username: string
+            nickname?: string
+            email?: string
+            phone?: string
+        }
+        roles?: string[]
+    }>({
+        url: '/auth/login',
         method: 'post',
         data
     })
+
     return {
-        token,
-        // TODO 后端登录目前返回的是 token 字符串，所以前端 userInfo 还是用当前最小映射（用户名回填），等后端补用户详情接口后再切成真实用户信息
+        token: result.token,
         userInfo: {
-            id: '1',
-            username: data.username,
-            email: data.username + '@example.com'
-        }
+            id: String(result.userInfo.id),
+            username: result.userInfo.username,
+            nickname: result.userInfo.nickname,
+            email: result.userInfo.email,
+            phone: result.userInfo.phone
+        },
+        roles: result.roles || []
     }
+}
+
+export const logoutApi = async (): Promise<void> => {
+    await requestApi<void>({
+        url: '/auth/logout',
+        method: 'post'
+    })
 }
