@@ -95,12 +95,36 @@ export interface OutboundOrderDraftPayload {
   orderItemsBo: OutboundOrderItem[]
 }
 
-export function queryWarehouses(query: WarehouseQuery): Promise<Warehouse[]> {
-  return requestApi<Warehouse[]>({
+type WarehousePageResponse = PageResult<Warehouse> | Warehouse[]
+
+function toWarehousePageResult(query: WarehouseQuery, result: WarehousePageResponse): PageResult<Warehouse> {
+  if (!Array.isArray(result)) {
+    return result
+  }
+
+  const pageNo = query.pageNo ?? 1
+  const pageSize = query.pageSize ?? result.length
+  return {
+    pageNo,
+    pageSize,
+    total: result.length,
+    pages: 1,
+    records: result
+  }
+}
+
+export async function queryWarehousePage(query: WarehouseQuery): Promise<PageResult<Warehouse>> {
+  const result = await requestApi<WarehousePageResponse>({
     url: '/wms/warehouses/page',
     method: 'post',
     data: query
   })
+  return toWarehousePageResult(query, result)
+}
+
+export async function queryWarehouses(query: WarehouseQuery): Promise<Warehouse[]> {
+  const result = await queryWarehousePage(query)
+  return result.records
 }
 
 export function createWarehouse(data: Partial<Warehouse>): Promise<void> {

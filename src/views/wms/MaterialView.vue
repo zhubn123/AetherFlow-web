@@ -68,16 +68,15 @@
           </template>
         </el-table-column>
       </el-table>
-      <div class="pagination">
-        <el-pagination
-          v-model:current-page="query.pageNo"
-          v-model:page-size="query.pageSize"
-          :total="total"
-          :disabled="loading"
-          layout="total, prev, pager, next"
-          @current-change="onPageChange"
-        />
-      </div>
+      <WmsPagination
+        :current-page="query.pageNo"
+        :page-size="query.pageSize"
+        :total="total"
+        :pages="pages"
+        :disabled="loading"
+        @current-change="onPageChange"
+        @page-size-change="onPageSizeChange"
+      />
     </section>
 
     <el-dialog
@@ -124,6 +123,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
+import WmsPagination from '@/components/WmsPagination.vue'
 import { createMaterial, queryMaterials, removeMaterials, updateMaterial, type MaterialQuery } from '@/api/wms'
 import type { Material } from '@/types/wms'
 
@@ -293,7 +293,16 @@ async function removeRow(row: Material): Promise<void> {
 }
 
 function onPageChange(pageNo: number): void {
+  if (pageNo === query.pageNo) {
+    return
+  }
   query.pageNo = pageNo
+  void loadData()
+}
+
+function onPageSizeChange(pageSize: number): void {
+  query.pageNo = 1
+  query.pageSize = pageSize
   void loadData()
 }
 

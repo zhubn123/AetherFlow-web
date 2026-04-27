@@ -21,7 +21,7 @@
         </div>
       </div>
       <div class="actions-row">
-        <el-button type="primary" :disabled="loading" @click="loadData">查询</el-button>
+        <el-button type="primary" :disabled="loading" @click="handleSearch">查询</el-button>
         <el-button :disabled="loading" @click="resetQuery">重置</el-button>
       </div>
     </section>
@@ -55,6 +55,15 @@
           </template>
         </el-table-column>
       </el-table>
+      <WmsPagination
+        :current-page="query.pageNo"
+        :page-size="query.pageSize"
+        :total="total"
+        :pages="pages"
+        :disabled="loading"
+        @current-change="onPageChange"
+        @page-size-change="onPageSizeChange"
+      />
     </section>
 
     <el-dialog
@@ -97,11 +106,14 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { createWarehouse, queryWarehouses, removeWarehouses, updateWarehouse, type WarehouseQuery } from '@/api/wms'
+import WmsPagination from '@/components/WmsPagination.vue'
+import { createWarehouse, queryWarehousePage, removeWarehouses, updateWarehouse, type WarehouseQuery } from '@/api/wms'
 import type { Warehouse } from '@/types/wms'
 
 const loading = ref(false)
 const rows = ref<Warehouse[]>([])
+const total = ref(0)
+const pages = ref(0)
 const successMessage = ref('')
 const errorMessage = ref('')
 const isEditing = ref(false)
@@ -129,8 +141,14 @@ function clearMessages(): void {
 }
 
 function resetQuery(): void {
+  query.pageNo = 1
   query.warehouseCode = ''
   query.warehouseName = ''
+  void loadData()
+}
+
+function handleSearch(): void {
+  query.pageNo = 1
   void loadData()
 }
 
@@ -167,7 +185,12 @@ async function loadData(): Promise<void> {
   clearMessages()
   loading.value = true
   try {
-    rows.value = await queryWarehouses(query)
+    const result = await queryWarehousePage(query)
+    rows.value = result.records
+    total.value = result.total
+    pages.value = Math.max(result.pages, 1)
+    query.pageNo = result.pageNo
+    query.pageSize = result.pageSize
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '仓库列表加载失败'
   } finally {
@@ -231,6 +254,20 @@ async function removeRow(row: Warehouse): Promise<void> {
   } finally {
     loading.value = false
   }
+}
+
+function onPageChange(pageNo: number): void {
+  if (pageNo === query.pageNo) {
+    return
+  }
+  query.pageNo = pageNo
+  void loadData()
+}
+
+function onPageSizeChange(pageSize: number): void {
+  query.pageNo = 1
+  query.pageSize = pageSize
+  void loadData()
 }
 
 onMounted(() => {

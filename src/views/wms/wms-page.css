@@ -77,12 +77,6 @@
   margin-bottom: 10px;
 }
 
-.pagination {
-  margin-top: 12px;
-  display: flex;
-  justify-content: flex-end;
-}
-
 .wms-dialog :deep(.el-select),
 .wms-dialog :deep(.el-input),
 .wms-dialog :deep(.el-input-number) {
