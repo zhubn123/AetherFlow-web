@@ -4,7 +4,7 @@ import { useUserStore } from '@/stores/user'
 export const constantRoutes = [
     {
         path: '/',
-        redirect: '/dashboard'
+        redirect: '/login'
     },
     {
         path: '/login',
@@ -73,12 +73,27 @@ const router = createRouter({
     }
 })
 
+function hasLocalAccessToken(): boolean {
+    return !!localStorage.getItem('token')
+}
+
 router.beforeEach((to) => {
     const userStore = useUserStore()
-    
-    if (to.meta.requiresAuth && !userStore.isLoggedIn) {
-        return '/login'
-    } else if (to.meta.requiresGuest && userStore.isLoggedIn) {
+    const hasAccessToken = hasLocalAccessToken()
+
+    if (!hasAccessToken && userStore.token) {
+        userStore.forceLogout()
+    }
+
+    if (to.meta.requiresAuth && (!userStore.isLoggedIn || !hasAccessToken)) {
+        return {
+            path: '/login',
+            query: {
+                reason: 'auth-required',
+                redirect: to.fullPath
+            }
+        }
+    } else if (to.meta.requiresGuest && userStore.isLoggedIn && hasAccessToken) {
         return '/dashboard'
     }
     return true

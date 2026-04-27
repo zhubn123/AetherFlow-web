@@ -4,6 +4,7 @@ import { loginApi, logoutApi, type LoginRequest, type UserInfo } from '@/api/log
 
 export const useUserStore = defineStore('user', () => {
     const token = ref<string>(localStorage.getItem('token') || '')
+    const refreshToken = ref<string>(localStorage.getItem('refresh_token') || '')
     const userInfo = ref<UserInfo | null>(readLocalUserInfo())
     const roles = ref<string[]>(readLocalRoles())
     const isLoggedIn = computed(() => !!token.value)
@@ -11,9 +12,15 @@ export const useUserStore = defineStore('user', () => {
     const login = async (data: LoginRequest): Promise<void> => {
         const response = await loginApi(data)
         token.value = response.token
+        refreshToken.value = response.refreshToken || ''
         userInfo.value = response.userInfo
         roles.value = response.roles
         localStorage.setItem('token', response.token)
+        if (response.refreshToken) {
+            localStorage.setItem('refresh_token', response.refreshToken)
+        } else {
+            localStorage.removeItem('refresh_token')
+        }
         localStorage.setItem('user_info', JSON.stringify(response.userInfo))
         localStorage.setItem('roles', JSON.stringify(response.roles))
     }
@@ -33,9 +40,11 @@ export const useUserStore = defineStore('user', () => {
 
     function clearLocalState(): void {
         token.value = ''
+        refreshToken.value = ''
         userInfo.value = null
         roles.value = []
         localStorage.removeItem('token')
+        localStorage.removeItem('refresh_token')
         localStorage.removeItem('user_info')
         localStorage.removeItem('roles')
     }
@@ -51,6 +60,7 @@ export const useUserStore = defineStore('user', () => {
 
     return {
         token,
+        refreshToken,
         userInfo,
         roles,
         isLoggedIn,

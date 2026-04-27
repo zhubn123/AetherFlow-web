@@ -116,10 +116,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
 const username = ref('')
@@ -133,6 +134,12 @@ onMounted(() => {
     if (savedUsername) {
         username.value = savedUsername
         rememberMe.value = true
+    }
+    const reason = route.query.reason
+    if (reason === 'session-expired') {
+        errorMessage.value = '登录状态已失效，请重新登录'
+    } else if (reason === 'auth-required') {
+        errorMessage.value = '请先登录后再访问该页面'
     }
 })
 
@@ -162,7 +169,8 @@ const login = async () => {
             localStorage.removeItem('username')
         }
         
-        router.push('/dashboard')
+        const redirectTarget = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
+        router.push(redirectTarget)
     } catch (error) {
         errorMessage.value = error instanceof Error ? error.message : '登录失败'
         console.error('登录失败:', error)

@@ -15,6 +15,7 @@ export interface UserInfo {
 
 export interface LoginResponse {
     token: string
+    refreshToken?: string
     userInfo: UserInfo
     roles: string[]
 }
@@ -22,6 +23,7 @@ export interface LoginResponse {
 export const loginApi = async (data: LoginRequest): Promise<LoginResponse> => {
     const result = await requestApi<{
         token: string
+        refreshToken?: string
         userInfo: {
             id: number | string
             username: string
@@ -38,6 +40,7 @@ export const loginApi = async (data: LoginRequest): Promise<LoginResponse> => {
 
     return {
         token: result.token,
+        refreshToken: result.refreshToken,
         userInfo: {
             id: String(result.userInfo.id),
             username: result.userInfo.username,
