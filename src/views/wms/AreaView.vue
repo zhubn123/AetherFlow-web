@@ -5,10 +5,8 @@
         <h1>区域管理</h1>
         <p>维护仓库下业务分区，形成仓库 -> 区域 -> 库位的主数据层级。</p>
       </div>
-      <RouterLink to="/dashboard" class="btn ghost">返回首页</RouterLink>
+      <RouterLink to="/dashboard"><el-button plain>返回首页</el-button></RouterLink>
     </header>
-
-    <WmsNav />
 
     <section class="panel">
       <h2>查询条件</h2>
@@ -45,62 +43,55 @@
         </div>
       </div>
       <div class="actions-row">
-        <button class="btn" :disabled="loading" @click="handleSearch">查询</button>
-        <button class="btn secondary" :disabled="loading" @click="resetQuery">重置</button>
+        <el-button type="primary" :disabled="loading" @click="handleSearch">查询</el-button>
+        <el-button :disabled="loading" @click="resetQuery">重置</el-button>
       </div>
     </section>
 
     <section class="panel">
       <h2>区域列表</h2>
-      <div v-if="successMessage" class="message success">{{ successMessage }}</div>
-      <div v-if="errorMessage" class="message error">{{ errorMessage }}</div>
+      <el-alert v-if="successMessage" class="message" type="success" :closable="false" :show-icon="true" :title="successMessage" />
+      <el-alert v-if="errorMessage" class="message" type="error" :closable="false" :show-icon="true" :title="errorMessage" />
       <div class="actions-row">
-        <button class="btn" :disabled="loading" @click="openCreateDialog">新增区域</button>
+        <el-button type="primary" :disabled="loading" @click="openCreateDialog">新增区域</el-button>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>仓库</th>
-              <th>区域编码</th>
-              <th>区域名称</th>
-              <th>区域类型</th>
-              <th>状态</th>
-              <th>备注</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in rows" :key="String(row.id)">
-              <td>{{ renderWarehouse(row) }}</td>
-              <td>{{ row.areaCode || '-' }}</td>
-              <td>{{ row.areaName }}</td>
-              <td>{{ row.areaType || '-' }}</td>
-              <td>
-                <span class="status-tag" :class="row.status === 1 ? 'disabled' : 'normal'">
-                  {{ row.status === 1 ? '停用' : '正常' }}
-                </span>
-              </td>
-              <td>{{ row.remark || '-' }}</td>
-              <td>
-                <div class="cell-actions">
-                  <button class="text-link" @click="startEdit(row)">编辑</button>
-                  <button class="text-link danger" @click="removeRow(row)">删除</button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="!rows.length">
-              <td class="empty-cell" colspan="7">暂无数据</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <el-table :data="rows" v-loading="loading" empty-text="暂无数据">
+        <el-table-column label="仓库" min-width="180">
+          <template #default="{ row }">{{ renderWarehouse(row) }}</template>
+        </el-table-column>
+        <el-table-column label="区域编码" min-width="130">
+          <template #default="{ row }">{{ row.areaCode || '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="areaName" label="区域名称" min-width="160" />
+        <el-table-column label="区域类型" min-width="140">
+          <template #default="{ row }">{{ row.areaType || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 1 ? 'warning' : 'success'" effect="light">
+              {{ row.status === 1 ? '停用' : '正常' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="备注" min-width="180">
+          <template #default="{ row }">{{ row.remark || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" size="small" @click="startEdit(row)">编辑</el-button>
+            <el-button link type="danger" size="small" @click="removeRow(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
       <div class="pagination">
-        <span>共 {{ total }} 条，当前第 {{ query.pageNo }} / {{ pages || 1 }} 页</span>
-        <div class="actions-row" style="margin-top: 0;">
-          <button class="btn secondary" :disabled="loading || (query.pageNo || 1) <= 1" @click="prevPage">上一页</button>
-          <button class="btn secondary" :disabled="loading || (query.pageNo || 1) >= pages" @click="nextPage">下一页</button>
-        </div>
+        <el-pagination
+          v-model:current-page="query.pageNo"
+          v-model:page-size="query.pageSize"
+          :total="total"
+          :disabled="loading"
+          layout="total, prev, pager, next"
+          @current-change="onPageChange"
+        />
       </div>
     </section>
 
@@ -146,9 +137,9 @@
       </div>
       <template #footer>
         <div class="actions-row">
-          <button class="btn" :disabled="loading" @click="submitForm">{{ isEditing ? '保存修改' : '创建区域' }}</button>
-          <button class="btn secondary" :disabled="loading" @click="resetForm">清空表单</button>
-          <button class="btn text" :disabled="loading" @click="closeDialog">取消</button>
+          <el-button type="primary" :disabled="loading" @click="submitForm">{{ isEditing ? '保存修改' : '创建区域' }}</el-button>
+          <el-button :disabled="loading" @click="resetForm">清空表单</el-button>
+          <el-button text :disabled="loading" @click="closeDialog">取消</el-button>
         </div>
       </template>
     </el-dialog>
@@ -158,7 +149,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import WmsNav from '@/components/WmsNav.vue'
+import { ElMessageBox } from 'element-plus'
 import { createArea, queryAreas, queryWarehouses, removeAreas, updateArea, type AreaQuery } from '@/api/wms'
 import type { Area, Warehouse } from '@/types/wms'
 
@@ -334,8 +325,13 @@ async function submitForm(): Promise<void> {
 
 async function removeRow(row: Area): Promise<void> {
   clearMessages()
-  const confirmed = window.confirm(`确认删除区域「${row.areaName}」吗？`)
-  if (!confirmed) {
+  try {
+    await ElMessageBox.confirm(`确认删除区域「${row.areaName}」吗？`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消'
+    })
+  } catch {
     return
   }
 
@@ -351,19 +347,8 @@ async function removeRow(row: Area): Promise<void> {
   }
 }
 
-function prevPage(): void {
-  if ((query.pageNo || 1) <= 1) {
-    return
-  }
-  query.pageNo = (query.pageNo || 1) - 1
-  void loadData()
-}
-
-function nextPage(): void {
-  if ((query.pageNo || 1) >= pages.value) {
-    return
-  }
-  query.pageNo = (query.pageNo || 1) + 1
+function onPageChange(pageNo: number): void {
+  query.pageNo = pageNo
   void loadData()
 }
 

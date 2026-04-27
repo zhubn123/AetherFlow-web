@@ -2,12 +2,34 @@
   font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #0f172a;
-  background-color: #f8fafc;
+  color: #14213d;
+  background-color: #edf3ff;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --af-brand: #2563eb;
+  --af-brand-2: #1d4ed8;
+  --af-ink: #15284a;
+  --af-text-2: #5f6f90;
+  --af-text-3: #8391ad;
+  --af-bg-top: #f7f9fc;
+  --af-bg-bottom: #f2f5fa;
+  --af-surface: #ffffff;
+  --af-surface-strong: #ffffff;
+  --af-border: #dfe6f1;
+  --af-shadow: 0 4px 14px rgba(19, 43, 88, 0.06);
+
+  --el-color-primary: var(--af-brand);
+  --el-color-primary-dark-2: #1e40af;
+  --el-border-radius-base: 10px;
+  --el-border-color: #d8e2f3;
+  --el-border-color-light: #e2e9f6;
+  --el-fill-color-blank: var(--af-surface-strong);
+  --el-text-color-primary: var(--af-ink);
+  --el-text-color-regular: #334a74;
+  --el-text-color-secondary: var(--af-text-2);
 }
 
 *,
@@ -26,6 +48,12 @@ body,
 
 body {
   min-height: 100vh;
+  color: var(--af-ink);
+  background: linear-gradient(180deg, var(--af-bg-top) 0%, var(--af-bg-bottom) 100%);
+}
+
+#app {
+  position: relative;
 }
 
 a {

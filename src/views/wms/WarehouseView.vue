@@ -5,70 +5,56 @@
         <h1>仓库管理</h1>
         <p>维护仓库基础信息，作为库位和库存的上层组织。</p>
       </div>
-      <RouterLink to="/dashboard" class="btn ghost">返回首页</RouterLink>
+      <RouterLink to="/dashboard"><el-button plain>返回首页</el-button></RouterLink>
     </header>
-
-    <WmsNav />
 
     <section class="panel">
       <h2>查询条件</h2>
       <div class="field-grid">
         <div class="field">
           <label>仓库编码</label>
-          <input v-model.trim="query.warehouseCode" type="text" placeholder="支持精确匹配" />
+          <el-input v-model.trim="query.warehouseCode" placeholder="支持精确匹配" />
         </div>
         <div class="field">
           <label>仓库名称</label>
-          <input v-model.trim="query.warehouseName" type="text" placeholder="支持模糊匹配" />
+          <el-input v-model.trim="query.warehouseName" placeholder="支持模糊匹配" />
         </div>
       </div>
       <div class="actions-row">
-        <button class="btn" :disabled="loading" @click="loadData">查询</button>
-        <button class="btn secondary" :disabled="loading" @click="resetQuery">重置</button>
+        <el-button type="primary" :disabled="loading" @click="loadData">查询</el-button>
+        <el-button :disabled="loading" @click="resetQuery">重置</el-button>
       </div>
     </section>
 
     <section class="panel">
       <h2>仓库列表（{{ rows.length }}）</h2>
-      <div v-if="successMessage" class="message success">{{ successMessage }}</div>
-      <div v-if="errorMessage" class="message error">{{ errorMessage }}</div>
+      <el-alert v-if="successMessage" class="message" type="success" :closable="false" :show-icon="true" :title="successMessage" />
+      <el-alert v-if="errorMessage" class="message" type="error" :closable="false" :show-icon="true" :title="errorMessage" />
       <div class="actions-row">
-        <button class="btn" :disabled="loading" @click="openCreateDialog">新增仓库</button>
+        <el-button type="primary" :disabled="loading" @click="openCreateDialog">新增仓库</el-button>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>编码</th>
-              <th>名称</th>
-              <th>状态</th>
-              <th>备注</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in rows" :key="String(row.id)">
-              <td>{{ row.warehouseCode || '-' }}</td>
-              <td>{{ row.warehouseName }}</td>
-              <td>
-                <span class="status-tag" :class="row.status === 1 ? 'disabled' : 'normal'">
-                  {{ row.status === 1 ? '停用' : '正常' }}
-                </span>
-              </td>
-              <td>{{ row.remark || '-' }}</td>
-              <td>
-                <div class="cell-actions">
-                  <button class="text-link" @click="startEdit(row)">编辑</button>
-                  <button class="text-link danger" @click="removeRow(row)">删除</button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="!rows.length">
-              <td class="empty-cell" colspan="5">暂无数据</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <el-table :data="rows" v-loading="loading" empty-text="暂无数据">
+        <el-table-column label="编码" min-width="120">
+          <template #default="{ row }">{{ row.warehouseCode || '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="warehouseName" label="名称" min-width="180" />
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 1 ? 'warning' : 'success'" effect="light">
+              {{ row.status === 1 ? '停用' : '正常' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="备注" min-width="220">
+          <template #default="{ row }">{{ row.remark || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" size="small" @click="startEdit(row)">编辑</el-button>
+            <el-button link type="danger" size="small" @click="removeRow(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
     </section>
 
     <el-dialog
@@ -98,9 +84,9 @@
       </div>
       <template #footer>
         <div class="actions-row">
-          <button class="btn" :disabled="loading" @click="submitForm">{{ isEditing ? '保存修改' : '创建仓库' }}</button>
-          <button class="btn secondary" :disabled="loading" @click="resetForm">清空表单</button>
-          <button class="btn text" :disabled="loading" @click="closeDialog">取消</button>
+          <el-button type="primary" :disabled="loading" @click="submitForm">{{ isEditing ? '保存修改' : '创建仓库' }}</el-button>
+          <el-button :disabled="loading" @click="resetForm">清空表单</el-button>
+          <el-button text :disabled="loading" @click="closeDialog">取消</el-button>
         </div>
       </template>
     </el-dialog>
@@ -110,7 +96,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import WmsNav from '@/components/WmsNav.vue'
+import { ElMessageBox } from 'element-plus'
 import { createWarehouse, queryWarehouses, removeWarehouses, updateWarehouse, type WarehouseQuery } from '@/api/wms'
 import type { Warehouse } from '@/types/wms'
 
@@ -225,8 +211,13 @@ async function submitForm(): Promise<void> {
 
 async function removeRow(row: Warehouse): Promise<void> {
   clearMessages()
-  const confirmed = window.confirm(`确认删除仓库「${row.warehouseName}」吗？`)
-  if (!confirmed) {
+  try {
+    await ElMessageBox.confirm(`确认删除仓库「${row.warehouseName}」吗？`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消'
+    })
+  } catch {
     return
   }
 

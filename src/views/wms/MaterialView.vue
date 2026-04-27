@@ -5,88 +5,78 @@
         <h1>物料管理</h1>
         <p>维护物料主数据，统一编码、规格和计量单位。</p>
       </div>
-      <RouterLink to="/dashboard" class="btn ghost">返回首页</RouterLink>
+      <RouterLink to="/dashboard"><el-button plain>返回首页</el-button></RouterLink>
     </header>
-
-    <WmsNav />
 
     <section class="panel">
       <h2>查询条件</h2>
       <div class="field-grid">
         <div class="field">
           <label>物料编码</label>
-          <input v-model.trim="query.materialCode" type="text" placeholder="支持精确匹配" />
+          <el-input v-model.trim="query.materialCode" placeholder="支持精确匹配" />
         </div>
         <div class="field">
           <label>物料名称</label>
-          <input v-model.trim="query.materialName" type="text" placeholder="支持模糊匹配" />
+          <el-input v-model.trim="query.materialName" placeholder="支持模糊匹配" />
         </div>
         <div class="field">
           <label>状态</label>
-          <select v-model="statusFilter">
-            <option value="">全部</option>
-            <option value="0">正常</option>
-            <option value="1">停用</option>
-          </select>
+          <el-select v-model="statusFilter" placeholder="全部" clearable>
+            <el-option label="正常" value="0" />
+            <el-option label="停用" value="1" />
+          </el-select>
         </div>
       </div>
       <div class="actions-row">
-        <button class="btn" :disabled="loading" @click="handleSearch">查询</button>
-        <button class="btn secondary" :disabled="loading" @click="resetQuery">重置</button>
+        <el-button type="primary" :disabled="loading" @click="handleSearch">查询</el-button>
+        <el-button :disabled="loading" @click="resetQuery">重置</el-button>
       </div>
     </section>
 
     <section class="panel">
       <h2>物料列表</h2>
-      <div v-if="successMessage" class="message success">{{ successMessage }}</div>
-      <div v-if="errorMessage" class="message error">{{ errorMessage }}</div>
+      <el-alert v-if="successMessage" class="message" type="success" :closable="false" :show-icon="true" :title="successMessage" />
+      <el-alert v-if="errorMessage" class="message" type="error" :closable="false" :show-icon="true" :title="errorMessage" />
       <div class="actions-row">
-        <button class="btn" :disabled="loading" @click="openCreateDialog">新增物料</button>
+        <el-button type="primary" :disabled="loading" @click="openCreateDialog">新增物料</el-button>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>编码</th>
-              <th>名称</th>
-              <th>规格</th>
-              <th>单位</th>
-              <th>状态</th>
-              <th>备注</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in rows" :key="String(row.id)">
-              <td>{{ row.materialCode || '-' }}</td>
-              <td>{{ row.materialName }}</td>
-              <td>{{ row.specification || '-' }}</td>
-              <td>{{ row.unit || '-' }}</td>
-              <td>
-                <span class="status-tag" :class="row.status === 1 ? 'disabled' : 'normal'">
-                  {{ row.status === 1 ? '停用' : '正常' }}
-                </span>
-              </td>
-              <td>{{ row.remark || '-' }}</td>
-              <td>
-                <div class="cell-actions">
-                  <button class="text-link" @click="startEdit(row)">编辑</button>
-                  <button class="text-link danger" @click="removeRow(row)">删除</button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="!rows.length">
-              <td class="empty-cell" colspan="7">暂无数据</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <el-table :data="rows" v-loading="loading" empty-text="暂无数据">
+        <el-table-column label="编码" min-width="130">
+          <template #default="{ row }">{{ row.materialCode || '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="materialName" label="名称" min-width="160" />
+        <el-table-column label="规格" min-width="160">
+          <template #default="{ row }">{{ row.specification || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="单位" min-width="100">
+          <template #default="{ row }">{{ row.unit || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 1 ? 'warning' : 'success'" effect="light">
+              {{ row.status === 1 ? '停用' : '正常' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="备注" min-width="180">
+          <template #default="{ row }">{{ row.remark || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" size="small" @click="startEdit(row)">编辑</el-button>
+            <el-button link type="danger" size="small" @click="removeRow(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
       <div class="pagination">
-        <span>共 {{ total }} 条，当前第 {{ query.pageNo }} / {{ pages || 1 }} 页</span>
-        <div class="actions-row" style="margin-top: 0;">
-          <button class="btn secondary" :disabled="loading || (query.pageNo || 1) <= 1" @click="prevPage">上一页</button>
-          <button class="btn secondary" :disabled="loading || (query.pageNo || 1) >= pages" @click="nextPage">下一页</button>
-        </div>
+        <el-pagination
+          v-model:current-page="query.pageNo"
+          v-model:page-size="query.pageSize"
+          :total="total"
+          :disabled="loading"
+          layout="total, prev, pager, next"
+          @current-change="onPageChange"
+        />
       </div>
     </section>
 
@@ -121,9 +111,9 @@
       </div>
       <template #footer>
         <div class="actions-row">
-          <button class="btn" :disabled="loading" @click="submitForm">{{ isEditing ? '保存修改' : '创建物料' }}</button>
-          <button class="btn secondary" :disabled="loading" @click="resetForm">清空表单</button>
-          <button class="btn text" :disabled="loading" @click="closeDialog">取消</button>
+          <el-button type="primary" :disabled="loading" @click="submitForm">{{ isEditing ? '保存修改' : '创建物料' }}</el-button>
+          <el-button :disabled="loading" @click="resetForm">清空表单</el-button>
+          <el-button text :disabled="loading" @click="closeDialog">取消</el-button>
         </div>
       </template>
     </el-dialog>
@@ -133,7 +123,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import WmsNav from '@/components/WmsNav.vue'
+import { ElMessageBox } from 'element-plus'
 import { createMaterial, queryMaterials, removeMaterials, updateMaterial, type MaterialQuery } from '@/api/wms'
 import type { Material } from '@/types/wms'
 
@@ -280,8 +270,13 @@ async function submitForm(): Promise<void> {
 
 async function removeRow(row: Material): Promise<void> {
   clearMessages()
-  const confirmed = window.confirm(`确认删除物料「${row.materialName}」吗？`)
-  if (!confirmed) {
+  try {
+    await ElMessageBox.confirm(`确认删除物料「${row.materialName}」吗？`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消'
+    })
+  } catch {
     return
   }
 
@@ -297,19 +292,8 @@ async function removeRow(row: Material): Promise<void> {
   }
 }
 
-function prevPage(): void {
-  if ((query.pageNo || 1) <= 1) {
-    return
-  }
-  query.pageNo = (query.pageNo || 1) - 1
-  void loadData()
-}
-
-function nextPage(): void {
-  if ((query.pageNo || 1) >= pages.value) {
-    return
-  }
-  query.pageNo = (query.pageNo || 1) + 1
+function onPageChange(pageNo: number): void {
+  query.pageNo = pageNo
   void loadData()
 }
 

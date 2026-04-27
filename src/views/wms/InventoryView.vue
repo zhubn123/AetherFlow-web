@@ -5,10 +5,8 @@
         <h1>库存查询</h1>
         <p>按仓库、区域、库位、物料维度查看当前与锁定库存。</p>
       </div>
-      <RouterLink to="/dashboard" class="btn ghost">返回首页</RouterLink>
+      <RouterLink to="/dashboard"><el-button plain>返回首页</el-button></RouterLink>
     </header>
-
-    <WmsNav />
 
     <section class="panel">
       <h2>查询条件</h2>
@@ -67,47 +65,39 @@
         </div>
       </div>
       <div class="actions-row">
-        <button class="btn" :disabled="loading" @click="handleSearch">查询</button>
-        <button class="btn secondary" :disabled="loading" @click="resetQuery">重置</button>
+        <el-button type="primary" :disabled="loading" @click="handleSearch">查询</el-button>
+        <el-button :disabled="loading" @click="resetQuery">重置</el-button>
       </div>
     </section>
 
     <section class="panel">
       <h2>库存列表</h2>
-      <div v-if="errorMessage" class="message error">{{ errorMessage }}</div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>仓库</th>
-              <th>区域</th>
-              <th>库位</th>
-              <th>物料</th>
-              <th>当前库存</th>
-              <th>锁定库存</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in rows" :key="String(row.id)">
-              <td>{{ renderWarehouse(row) }}</td>
-              <td>{{ renderArea(row) }}</td>
-              <td>{{ renderLocation(row) }}</td>
-              <td>{{ renderMaterial(row) }}</td>
-              <td>{{ row.quantity }}</td>
-              <td>{{ row.lockedQuantity }}</td>
-            </tr>
-            <tr v-if="!rows.length">
-              <td class="empty-cell" colspan="6">暂无数据</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <el-alert v-if="errorMessage" class="message" type="error" :closable="false" :show-icon="true" :title="errorMessage" />
+      <el-table :data="rows" v-loading="loading" empty-text="暂无数据">
+        <el-table-column label="仓库" min-width="180">
+          <template #default="{ row }">{{ renderWarehouse(row) }}</template>
+        </el-table-column>
+        <el-table-column label="区域" min-width="180">
+          <template #default="{ row }">{{ renderArea(row) }}</template>
+        </el-table-column>
+        <el-table-column label="库位" min-width="180">
+          <template #default="{ row }">{{ renderLocation(row) }}</template>
+        </el-table-column>
+        <el-table-column label="物料" min-width="200">
+          <template #default="{ row }">{{ renderMaterial(row) }}</template>
+        </el-table-column>
+        <el-table-column prop="quantity" label="当前库存" min-width="120" />
+        <el-table-column prop="lockedQuantity" label="锁定库存" min-width="120" />
+      </el-table>
       <div class="pagination">
-        <span>共 {{ total }} 条，当前第 {{ query.pageNo }} / {{ pages || 1 }} 页</span>
-        <div class="actions-row" style="margin-top: 0;">
-          <button class="btn secondary" :disabled="loading || (query.pageNo || 1) <= 1" @click="prevPage">上一页</button>
-          <button class="btn secondary" :disabled="loading || (query.pageNo || 1) >= pages" @click="nextPage">下一页</button>
-        </div>
+        <el-pagination
+          v-model:current-page="query.pageNo"
+          v-model:page-size="query.pageSize"
+          :total="total"
+          :disabled="loading"
+          layout="total, prev, pager, next"
+          @current-change="onPageChange"
+        />
       </div>
     </section>
   </div>
@@ -116,7 +106,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import WmsNav from '@/components/WmsNav.vue'
 import { queryAreas, queryInventories, queryLocations, queryMaterials, queryWarehouses, type InventoryQuery } from '@/api/wms'
 import type { Area, Inventory, Location, Material, Warehouse } from '@/types/wms'
 
@@ -299,19 +288,8 @@ function renderMaterial(row: Inventory): string {
   return `${found.materialCode} - ${found.materialName}`
 }
 
-function prevPage(): void {
-  if ((query.pageNo || 1) <= 1) {
-    return
-  }
-  query.pageNo = (query.pageNo || 1) - 1
-  void loadData()
-}
-
-function nextPage(): void {
-  if ((query.pageNo || 1) >= pages.value) {
-    return
-  }
-  query.pageNo = (query.pageNo || 1) + 1
+function onPageChange(pageNo: number): void {
+  query.pageNo = pageNo
   void loadData()
 }
 

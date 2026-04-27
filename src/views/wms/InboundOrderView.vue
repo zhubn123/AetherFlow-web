@@ -5,10 +5,8 @@
         <h1>入库管理</h1>
         <p>支持草稿创建、确认入账和单据状态跟踪。</p>
       </div>
-      <RouterLink to="/dashboard" class="btn ghost">返回首页</RouterLink>
+      <RouterLink to="/dashboard"><el-button plain>返回首页</el-button></RouterLink>
     </header>
-
-    <WmsNav />
 
     <section class="panel">
       <h2>查询条件</h2>
@@ -48,61 +46,53 @@
         </div>
       </div>
       <div class="actions-row">
-        <button class="btn" :disabled="loading" @click="handleSearch">查询</button>
-        <button class="btn secondary" :disabled="loading" @click="resetQuery">重置</button>
+        <el-button type="primary" :disabled="loading" @click="handleSearch">查询</el-button>
+        <el-button :disabled="loading" @click="resetQuery">重置</el-button>
       </div>
     </section>
 
     <section class="panel">
       <h2>入库单列表</h2>
-      <div v-if="successMessage" class="message success">{{ successMessage }}</div>
-      <div v-if="errorMessage" class="message error">{{ errorMessage }}</div>
+      <el-alert v-if="successMessage" class="message" type="success" :closable="false" :show-icon="true" :title="successMessage" />
+      <el-alert v-if="errorMessage" class="message" type="error" :closable="false" :show-icon="true" :title="errorMessage" />
       <div class="actions-row">
-        <button class="btn" :disabled="loading" @click="openCreateDialog">新建入库单</button>
+        <el-button type="primary" :disabled="loading" @click="openCreateDialog">新建入库单</el-button>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>单号</th>
-              <th>仓库</th>
-              <th>状态</th>
-              <th>入库时间</th>
-              <th>备注</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in rows" :key="String(row.id)">
-              <td>{{ row.orderNo }}</td>
-              <td>{{ renderWarehouse(row) }}</td>
-              <td>
-                <span class="status-tag" :class="row.status === 1 ? 'normal' : 'disabled'">
-                  {{ row.status === 1 ? '已确认' : '草稿' }}
-                </span>
-              </td>
-              <td>{{ row.inboundTime || '-' }}</td>
-              <td>{{ row.remark || '-' }}</td>
-              <td>
-                <div class="cell-actions">
-                  <button class="text-link" :disabled="loading || row.status === 1" @click="startEdit(row)">编辑</button>
-                  <button class="text-link" :disabled="loading || row.status === 1" @click="confirmRow(row)">确认</button>
-                  <button class="text-link danger" :disabled="loading" @click="removeRow(row)">删除</button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="!rows.length">
-              <td class="empty-cell" colspan="6">暂无数据</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <el-table :data="rows" v-loading="loading" empty-text="暂无数据">
+        <el-table-column prop="orderNo" label="单号" min-width="170" />
+        <el-table-column label="仓库" min-width="180">
+          <template #default="{ row }">{{ renderWarehouse(row) }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="110">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 1 ? 'success' : 'info'" effect="light">
+              {{ row.status === 1 ? '已确认' : '草稿' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="入库时间" min-width="170">
+          <template #default="{ row }">{{ row.inboundTime || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="备注" min-width="180">
+          <template #default="{ row }">{{ row.remark || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="180" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" size="small" :disabled="loading || row.status === 1" @click="startEdit(row)">编辑</el-button>
+            <el-button link type="primary" size="small" :disabled="loading || row.status === 1" @click="confirmRow(row)">确认</el-button>
+            <el-button link type="danger" size="small" :disabled="loading" @click="removeRow(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
       <div class="pagination">
-        <span>共 {{ total }} 条，当前第 {{ query.pageNo }} / {{ pages || 1 }} 页</span>
-        <div class="actions-row" style="margin-top: 0;">
-          <button class="btn secondary" :disabled="loading || (query.pageNo || 1) <= 1" @click="prevPage">上一页</button>
-          <button class="btn secondary" :disabled="loading || (query.pageNo || 1) >= pages" @click="nextPage">下一页</button>
-        </div>
+        <el-pagination
+          v-model:current-page="query.pageNo"
+          v-model:page-size="query.pageSize"
+          :total="total"
+          :disabled="loading"
+          layout="total, prev, pager, next"
+          @current-change="onPageChange"
+        />
       </div>
     </section>
 
@@ -147,62 +137,58 @@
 
       <template v-if="dialogMode === 'create'">
         <div class="actions-row">
-          <button class="btn secondary" type="button" @click="addItem">新增明细行</button>
+          <el-button @click="addItem">新增明细行</el-button>
         </div>
-        <div class="table-wrap">
-          <table class="editor-table">
-            <thead>
-              <tr>
-                <th>行号</th>
-                <th>物料 *</th>
-                <th>库位 *</th>
-                <th>计划数量 *</th>
-                <th>备注</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(item, index) in form.orderItemsBo" :key="index">
-                <td>{{ index + 1 }}</td>
-                <td>
-                  <el-select v-model="item.materialId" placeholder="请选择物料">
-                    <el-option
-                      v-for="m in materialOptions"
-                      :key="String(m.id)"
-                      :label="`${m.materialCode} - ${m.materialName}`"
-                      :value="String(m.id)"
-                    />
-                  </el-select>
-                </td>
-                <td>
-                  <el-select v-model="item.locationId" placeholder="请选择库位">
-                    <el-option
-                      v-for="l in locationOptions"
-                      :key="String(l.id)"
-                      :label="`${l.locationCode} - ${l.locationName}`"
-                      :value="String(l.id)"
-                    />
-                  </el-select>
-                </td>
-                <td>
-                  <el-input-number v-model="item.plannedQty" :min="0.0001" :step="0.0001" />
-                </td>
-                <td>
-                  <el-input v-model="item.remark" placeholder="可选" />
-                </td>
-                <td>
-                  <button class="text-link danger" type="button" @click="removeItem(index)">删除</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <el-table :data="form.orderItemsBo" empty-text="请新增明细行">
+          <el-table-column label="行号" width="70">
+            <template #default="{ $index }">{{ $index + 1 }}</template>
+          </el-table-column>
+          <el-table-column label="物料 *" min-width="180">
+            <template #default="{ row }">
+              <el-select v-model="row.materialId" placeholder="请选择物料">
+                <el-option
+                  v-for="m in materialOptions"
+                  :key="String(m.id)"
+                  :label="`${m.materialCode} - ${m.materialName}`"
+                  :value="String(m.id)"
+                />
+              </el-select>
+            </template>
+          </el-table-column>
+          <el-table-column label="库位 *" min-width="180">
+            <template #default="{ row }">
+              <el-select v-model="row.locationId" placeholder="请选择库位">
+                <el-option
+                  v-for="l in locationOptions"
+                  :key="String(l.id)"
+                  :label="`${l.locationCode} - ${l.locationName}`"
+                  :value="String(l.id)"
+                />
+              </el-select>
+            </template>
+          </el-table-column>
+          <el-table-column label="计划数量 *" min-width="140">
+            <template #default="{ row }">
+              <el-input-number v-model="row.plannedQty" :min="0.0001" :step="0.0001" />
+            </template>
+          </el-table-column>
+          <el-table-column label="备注" min-width="160">
+            <template #default="{ row }">
+              <el-input v-model="row.remark" placeholder="可选" />
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="90" fixed="right">
+            <template #default="{ $index }">
+              <el-button link type="danger" size="small" @click="removeItem($index)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
       </template>
 
       <template #footer>
         <div class="actions-row">
-          <button class="btn" :disabled="loading" @click="submitForm">{{ dialogMode === 'create' ? '创建草稿' : '保存修改' }}</button>
-          <button class="btn text" :disabled="loading" @click="closeDialog">取消</button>
+          <el-button type="primary" :disabled="loading" @click="submitForm">{{ dialogMode === 'create' ? '创建草稿' : '保存修改' }}</el-button>
+          <el-button text :disabled="loading" @click="closeDialog">取消</el-button>
         </div>
       </template>
     </el-dialog>
@@ -212,7 +198,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import WmsNav from '@/components/WmsNav.vue'
+import { ElMessageBox } from 'element-plus'
 import {
   confirmInboundOrder,
   createInboundOrder,
@@ -521,8 +507,13 @@ async function submitForm(): Promise<void> {
 
 async function confirmRow(row: InboundOrder): Promise<void> {
   clearMessages()
-  const confirmed = window.confirm(`确认将入库单 ${row.orderNo} 执行“确认”吗？`)
-  if (!confirmed) {
+  try {
+    await ElMessageBox.confirm(`确认将入库单 ${row.orderNo} 执行“确认”吗？`, '确认入库单', {
+      type: 'warning',
+      confirmButtonText: '确认',
+      cancelButtonText: '取消'
+    })
+  } catch {
     return
   }
   loading.value = true
@@ -539,8 +530,13 @@ async function confirmRow(row: InboundOrder): Promise<void> {
 
 async function removeRow(row: InboundOrder): Promise<void> {
   clearMessages()
-  const confirmed = window.confirm(`确认删除入库单 ${row.orderNo} 吗？`)
-  if (!confirmed) {
+  try {
+    await ElMessageBox.confirm(`确认删除入库单 ${row.orderNo} 吗？`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消'
+    })
+  } catch {
     return
   }
   loading.value = true
@@ -555,19 +551,8 @@ async function removeRow(row: InboundOrder): Promise<void> {
   }
 }
 
-function prevPage(): void {
-  if ((query.pageNo || 1) <= 1) {
-    return
-  }
-  query.pageNo = (query.pageNo || 1) - 1
-  void loadData()
-}
-
-function nextPage(): void {
-  if ((query.pageNo || 1) >= pages.value) {
-    return
-  }
-  query.pageNo = (query.pageNo || 1) + 1
+function onPageChange(pageNo: number): void {
+  query.pageNo = pageNo
   void loadData()
 }
 

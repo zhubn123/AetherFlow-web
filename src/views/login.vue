@@ -106,9 +106,8 @@
                     </button>
                 </form>
                 
-                <!-- TODO -->
                 <div class="login-footer">
-                    <p>还没有账户？<a href="#">立即注册</a></p>
+                    <p>还没有账户？<RouterLink to="/register">立即注册</RouterLink></p>
                 </div>
             </div>
         </div>
@@ -117,7 +116,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()

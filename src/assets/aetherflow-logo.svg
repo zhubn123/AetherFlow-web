@@ -1,0 +1,22 @@
+<svg width="420" height="92" viewBox="0 0 420 92" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="afg1" x1="8" y1="8" x2="84" y2="84" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F7BFF"/>
+      <stop offset="1" stop-color="#2AD0FF"/>
+    </linearGradient>
+    <linearGradient id="afg2" x1="18" y1="18" x2="74" y2="74" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1E3FA6"/>
+      <stop offset="1" stop-color="#3A5FD9"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="2" y="2" width="88" height="88" rx="24" fill="#0C1B46"/>
+  <path d="M45.1 20.5C46.9 17.3 51.5 17.3 53.3 20.5L74.2 57.2C75.9 60.2 73.8 64 70.4 64H28C24.6 64 22.5 60.2 24.2 57.2L45.1 20.5Z" fill="url(#afg1)"/>
+  <path d="M50.4 31.3L61.3 51.1H54L50.4 44.7L41.9 60H32L44.2 38.1L50.4 31.3Z" fill="url(#afg2)"/>
+  <circle cx="68.2" cy="29.4" r="4.5" fill="#6BE2FF"/>
+
+  <g fill="#233B67">
+    <text x="106" y="45" font-size="34" font-weight="700" font-family="Segoe UI, Inter, Arial, sans-serif">AetherFlow</text>
+    <text x="108" y="73" font-size="24" font-weight="600" font-family="Segoe UI, Inter, Arial, sans-serif" fill="#3A5485">WMS</text>
+  </g>
+</svg>

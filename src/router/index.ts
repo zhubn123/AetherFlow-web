@@ -4,7 +4,7 @@ import { useUserStore } from '@/stores/user'
 export const constantRoutes = [
     {
         path: '/',
-        redirect: '/login'
+        redirect: '/dashboard'
     },
     {
         path: '/login',
@@ -12,44 +12,52 @@ export const constantRoutes = [
         meta: { requiresGuest: true }
     },
     {
-        path: '/dashboard',
-        component: () => import('@/views/Dashboard.vue'),
-        meta: { requiresAuth: true }
+        path: '/register',
+        component: () => import('@/views/register.vue'),
+        meta: { requiresGuest: true }
     },
     {
-        path: '/wms/warehouses',
-        component: () => import('@/views/wms/WarehouseView.vue'),
-        meta: { requiresAuth: true }
-    },
-    {
-        path: '/wms/locations',
-        component: () => import('@/views/wms/LocationView.vue'),
-        meta: { requiresAuth: true }
-    },
-    {
-        path: '/wms/areas',
-        component: () => import('@/views/wms/AreaView.vue'),
-        meta: { requiresAuth: true }
-    },
-    {
-        path: '/wms/materials',
-        component: () => import('@/views/wms/MaterialView.vue'),
-        meta: { requiresAuth: true }
-    },
-    {
-        path: '/wms/inbound-orders',
-        component: () => import('@/views/wms/InboundOrderView.vue'),
-        meta: { requiresAuth: true }
-    },
-    {
-        path: '/wms/outbound-orders',
-        component: () => import('@/views/wms/OutboundOrderView.vue'),
-        meta: { requiresAuth: true }
-    },
-    {
-        path: '/wms/stocks',
-        component: () => import('@/views/wms/InventoryView.vue'),
-        meta: { requiresAuth: true }
+        path: '/',
+        component: () => import('@/layouts/AppLayout.vue'),
+        meta: { requiresAuth: true },
+        children: [
+            {
+                path: 'dashboard',
+                component: () => import('@/views/Dashboard.vue')
+            },
+            {
+                path: 'wms/warehouses',
+                component: () => import('@/views/wms/WarehouseView.vue')
+            },
+            {
+                path: 'wms/locations',
+                component: () => import('@/views/wms/LocationView.vue')
+            },
+            {
+                path: 'wms/areas',
+                component: () => import('@/views/wms/AreaView.vue')
+            },
+            {
+                path: 'wms/materials',
+                component: () => import('@/views/wms/MaterialView.vue')
+            },
+            {
+                path: 'wms/inbound-orders',
+                component: () => import('@/views/wms/InboundOrderView.vue')
+            },
+            {
+                path: 'wms/outbound-orders',
+                component: () => import('@/views/wms/OutboundOrderView.vue')
+            },
+            {
+                path: 'wms/stocks',
+                component: () => import('@/views/wms/InventoryView.vue')
+            },
+            {
+                path: 'profile',
+                component: () => import('@/views/ProfileView.vue')
+            }
+        ]
     }
 ]
 
