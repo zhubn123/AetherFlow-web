@@ -80,7 +80,7 @@
           <template #default="{ row }">
             <el-button link type="primary" size="small" :disabled="loading || row.status === 1" @click="startEdit(row)">编辑</el-button>
             <el-button link type="primary" size="small" :disabled="loading || row.status === 1" @click="confirmRow(row)">确认</el-button>
-            <el-button link type="danger" size="small" :disabled="loading" @click="removeRow(row)">删除</el-button>
+            <el-button link type="danger" size="small" :disabled="loading || row.status === 1" @click="removeRow(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
