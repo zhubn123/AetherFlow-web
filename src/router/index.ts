@@ -50,6 +50,10 @@ export const constantRoutes = [
                 component: () => import('@/views/wms/OutboundOrderView.vue')
             },
             {
+                path: 'wms/inventory-adjustments',
+                component: () => import('@/views/wms/InventoryAdjustmentView.vue')
+            },
+            {
                 path: 'wms/stocks',
                 component: () => import('@/views/wms/InventoryView.vue')
             },

@@ -44,6 +44,7 @@ import {
   HomeFilled,
   MapLocation,
   OfficeBuilding,
+  SetUp,
   Upload
 } from '@element-plus/icons-vue'
 import logoPath from '@/assets/aetherflow-logo.svg'
@@ -75,7 +76,8 @@ const menuGroups: MenuGroup[] = [
     items: [
       { title: '入库', path: '/wms/inbound-orders', icon: Upload },
       { title: '出库', path: '/wms/outbound-orders', icon: Download },
-      { title: '库存', path: '/wms/stocks', icon: DataAnalysis }
+      { title: '库存', path: '/wms/stocks', icon: DataAnalysis },
+      { title: '库存调整', path: '/wms/inventory-adjustments', icon: SetUp }
     ]
   },
   {

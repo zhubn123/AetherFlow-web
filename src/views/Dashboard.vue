@@ -83,6 +83,7 @@ import {
   FullScreen,
   Grid,
   Search,
+  SetUp,
   Upload,
   UserFilled
 } from '@element-plus/icons-vue'
@@ -130,8 +131,9 @@ const overviewCards: OverviewCard[] = [
 
 // TODO(预留): 快捷操作建议改为“可配置入口”，后续从用户偏好或角色权限接口下发
 const quickActions: QuickAction[] = [
-  { key: 'newInbound', title: '新建入库单', path: '/wms/inbound-orders', icon: Download },
-  { key: 'newOutbound', title: '新建出库单', path: '/wms/outbound-orders', icon: Upload },
+  { key: 'newInbound', title: '新建入库单', path: '/wms/inbound-orders', icon: Upload },
+  { key: 'newOutbound', title: '新建出库单', path: '/wms/outbound-orders', icon: Download },
+  { key: 'stockAdjust', title: '库存调整', path: '/wms/inventory-adjustments', icon: SetUp },
   { key: 'stock', title: '查看库存', path: '/wms/stocks', icon: DataAnalysis },
   { key: 'menu', title: '常用入口', path: '/wms/warehouses', icon: Grid }
 ]

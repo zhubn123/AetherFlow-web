@@ -4,6 +4,9 @@ import type {
   IdValue,
   InboundOrder,
   InboundOrderItem,
+  InventoryAdjustment,
+  InventoryAdjustmentDetail,
+  InventoryAdjustmentItem,
   Inventory,
   Location,
   Material,
@@ -83,6 +86,16 @@ export interface OutboundOrderQuery {
   status?: number
 }
 
+export interface InventoryAdjustmentQuery {
+  pageNo?: number
+  pageSize?: number
+  orderNo?: string
+  warehouseId?: IdValue
+  areaId?: IdValue
+  adjustType?: string
+  status?: number
+}
+
 export interface InboundOrderDraftPayload {
   warehouseId: IdValue
   remark?: string
@@ -93,6 +106,15 @@ export interface OutboundOrderDraftPayload {
   warehouseId: IdValue
   remark?: string
   orderItemsBo: OutboundOrderItem[]
+}
+
+export interface InventoryAdjustmentDraftPayload {
+  warehouseId: IdValue
+  areaId: IdValue
+  adjustType: string
+  adjustReason: string
+  remark?: string
+  adjustmentItemsBo: InventoryAdjustmentItem[]
 }
 
 type WarehousePageResponse = PageResult<Warehouse> | Warehouse[]
@@ -325,6 +347,52 @@ export function confirmOutboundOrder(id: IdValue): Promise<boolean> {
 export function removeOutboundOrders(ids: IdValue[]): Promise<boolean> {
   return requestApi<boolean>({
     url: `/wms/outbound-orders?${buildIdsQuery(ids)}`,
+    method: 'delete'
+  })
+}
+
+export function queryInventoryAdjustments(query: InventoryAdjustmentQuery): Promise<PageResult<InventoryAdjustment>> {
+  return requestApi<PageResult<InventoryAdjustment>>({
+    url: '/wms/inventory-adjustments',
+    method: 'get',
+    params: query
+  })
+}
+
+export function getInventoryAdjustmentDetail(id: IdValue): Promise<InventoryAdjustmentDetail> {
+  return requestApi<InventoryAdjustmentDetail>({
+    url: `/wms/inventory-adjustments/${id}`,
+    method: 'get'
+  })
+}
+
+export function createInventoryAdjustment(data: InventoryAdjustmentDraftPayload): Promise<IdValue> {
+  return requestApi<IdValue>({
+    url: '/wms/inventory-adjustments',
+    method: 'post',
+    data
+  })
+}
+
+export function updateInventoryAdjustment(id: IdValue, data: Partial<InventoryAdjustmentDraftPayload>): Promise<boolean> {
+  return requestApi<boolean>({
+    url: `/wms/inventory-adjustments/${id}`,
+    method: 'put',
+    data
+  })
+}
+
+export function confirmInventoryAdjustment(id: IdValue): Promise<boolean> {
+  return requestApi<boolean>({
+    url: `/wms/inventory-adjustments/${id}/actions`,
+    method: 'post',
+    data: { action: 'CONFIRM' }
+  })
+}
+
+export function removeInventoryAdjustments(ids: IdValue[]): Promise<boolean> {
+  return requestApi<boolean>({
+    url: `/wms/inventory-adjustments?${buildIdsQuery(ids)}`,
     method: 'delete'
   })
 }

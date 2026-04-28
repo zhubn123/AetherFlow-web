@@ -70,6 +70,20 @@ export interface Inventory {
   lockedQuantity: number | string
 }
 
+export interface InventoryAdjustmentItem {
+  id?: IdValue
+  orderId?: IdValue
+  lineNo?: number
+  materialId: IdValue
+  materialCode?: string
+  materialName?: string
+  locationId: IdValue
+  locationCode?: string
+  locationName?: string
+  adjustQty: number | string
+  remark?: string
+}
+
 export interface InboundOrderItem {
   id?: IdValue
   orderId?: IdValue
@@ -112,4 +126,24 @@ export interface OutboundOrder {
   status: number
   outboundTime?: string
   remark?: string
+}
+
+export interface InventoryAdjustment {
+  id: IdValue
+  orderNo: string
+  warehouseId: IdValue
+  warehouseCode?: string
+  warehouseName?: string
+  areaId: IdValue
+  areaCode?: string
+  areaName?: string
+  adjustType: string
+  status: number
+  adjustTime?: string
+  adjustReason: string
+  remark?: string
+}
+
+export interface InventoryAdjustmentDetail extends InventoryAdjustment {
+  adjustmentItems: InventoryAdjustmentItem[]
 }
