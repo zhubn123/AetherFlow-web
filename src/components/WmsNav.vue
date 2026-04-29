@@ -34,6 +34,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowRightBold,
@@ -44,15 +45,18 @@ import {
   HomeFilled,
   MapLocation,
   OfficeBuilding,
+  Setting,
   SetUp,
   Upload
 } from '@element-plus/icons-vue'
 import logoPath from '@/assets/aetherflow-logo.svg'
+import { useUserStore } from '@/stores/user'
 
 interface MenuItem {
   title: string
   path: string
   icon: object
+  roles?: string[]
 }
 
 interface MenuGroup {
@@ -63,8 +67,10 @@ interface MenuGroup {
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 
-const menuGroups: MenuGroup[] = [
+const menuGroups = computed<MenuGroup[]>(() => {
+  const groups: MenuGroup[] = [
   {
     key: 'overview',
     title: '总览',
@@ -89,13 +95,35 @@ const menuGroups: MenuGroup[] = [
       { title: '库位', path: '/wms/locations', icon: Grid },
       { title: '物料', path: '/wms/materials', icon: Box }
     ]
+  },
+  {
+    key: 'system',
+    title: '系统管理',
+    items: [
+      { title: '用户管理', path: '/system/users', icon: Setting, roles: ['admin'] }
+    ]
   }
-]
+  ]
+
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => canAccess(item.roles))
+    }))
+    .filter((group) => group.items.length > 0)
+})
 
 function go(path: string): void {
   if (path !== route.path) {
     void router.push(path)
   }
+}
+
+function canAccess(roles?: string[]): boolean {
+  if (!roles || roles.length === 0) {
+    return true
+  }
+  return roles.some((roleKey) => userStore.hasRole(roleKey))
 }
 </script>
 

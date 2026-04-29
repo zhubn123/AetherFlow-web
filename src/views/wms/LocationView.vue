@@ -184,7 +184,7 @@ const formAreaOptions = ref<Area[]>([])
 
 const query = reactive<LocationQuery>({
   pageNo: 1,
-  pageSize: 10,
+  pageSize: 5,
   warehouseId: undefined,
   areaId: undefined,
   locationCode: '',

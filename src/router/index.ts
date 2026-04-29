@@ -8,13 +8,17 @@ export const constantRoutes = [
     },
     {
         path: '/login',
-        component: () => import('@/views/login.vue'),
+        component: () => import('@/views/auth/LoginView.vue'),
         meta: { requiresGuest: true }
     },
     {
         path: '/register',
-        component: () => import('@/views/register.vue'),
+        component: () => import('@/views/auth/RegisterView.vue'),
         meta: { requiresGuest: true }
+    },
+    {
+        path: '/404',
+        component: () => import('@/views/system/NotFoundView.vue')
     },
     {
         path: '/',
@@ -23,7 +27,16 @@ export const constantRoutes = [
         children: [
             {
                 path: 'dashboard',
-                component: () => import('@/views/Dashboard.vue')
+                component: () => import('@/views/dashboard/DashboardView.vue')
+            },
+            {
+                path: '403',
+                component: () => import('@/views/system/ForbiddenView.vue')
+            },
+            {
+                path: 'system/users',
+                component: () => import('@/views/system/UserManagementView.vue'),
+                meta: { roles: ['admin'] }
             },
             {
                 path: 'wms/warehouses',
@@ -59,9 +72,18 @@ export const constantRoutes = [
             },
             {
                 path: 'profile',
-                component: () => import('@/views/ProfileView.vue')
+                component: () => import('@/views/profile/ProfileView.vue')
             }
         ]
+    },
+    {
+        path: '/:pathMatch(.*)*',
+        redirect: (to) => ({
+            path: '/404',
+            query: {
+                path: to.fullPath
+            }
+        })
     }
 ]
 
@@ -95,6 +117,18 @@ router.beforeEach((to) => {
             query: {
                 reason: 'auth-required',
                 redirect: to.fullPath
+            }
+        }
+    } else if (Array.isArray(to.meta.roles) && to.meta.roles.length > 0) {
+        const allowed = to.meta.roles.some((roleKey) => userStore.hasRole(String(roleKey)))
+        if (!allowed) {
+            return {
+                path: '/403',
+                query: {
+                    reason: 'forbidden',
+                    redirect: to.fullPath,
+                    message: '当前账号没有访问该页面的权限'
+                }
             }
         }
     } else if (to.meta.requiresGuest && userStore.isLoggedIn && hasAccessToken) {

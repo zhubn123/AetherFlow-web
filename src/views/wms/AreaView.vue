@@ -167,7 +167,7 @@ const warehouseOptions = ref<Warehouse[]>([])
 
 const query = reactive<AreaQuery>({
   pageNo: 1,
-  pageSize: 10,
+  pageSize: 5,
   warehouseId: undefined,
   areaCode: '',
   areaName: '',

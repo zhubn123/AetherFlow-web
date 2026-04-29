@@ -121,7 +121,7 @@ const formVisible = ref(false)
 
 const query = reactive<WarehouseQuery>({
   pageNo: 1,
-  pageSize: 20,
+  pageSize: 5,
   warehouseCode: '',
   warehouseName: ''
 })

@@ -1,4 +1,5 @@
 import { requestApi } from '@/utils/request'
+import type { IdValue, PageResult } from '@/types/common'
 
 export interface RegisterRequest {
   username: string
@@ -14,6 +15,34 @@ export interface ProfileInfo {
   email?: string
   nickname?: string
   phone?: string
+}
+
+export interface UserManagementQuery {
+  pageNo: number
+  pageSize: number
+  username?: string
+  nickname?: string
+  roleKey?: string
+  status?: number
+}
+
+export interface ManagedUser {
+  id: IdValue
+  username: string
+  nickname?: string
+  email?: string
+  phone?: string
+  status: number
+  lastLoginTime?: string
+  roles: string[]
+}
+
+export interface ManagedUserUpdateRequest {
+  nickname?: string
+  email?: string
+  phone?: string
+  status: number
+  roleKeys: string[]
 }
 
 export interface ChangePasswordRequest {
@@ -61,6 +90,25 @@ export const updateProfileApi = async (data: Partial<ProfileInfo>): Promise<void
 export const updatePasswordApi = async (data: ChangePasswordRequest): Promise<void> => {
   await requestApi<void>({
     url: '/users/password',
+    method: 'put',
+    data
+  })
+}
+
+export const queryUserPage = async (params: UserManagementQuery): Promise<PageResult<ManagedUser>> => {
+  return requestApi<PageResult<ManagedUser>>({
+    url: '/users/page',
+    method: 'get',
+    params
+  })
+}
+
+export const updateManagedUserApi = async (
+  userId: IdValue,
+  data: ManagedUserUpdateRequest
+): Promise<void> => {
+  await requestApi<void>({
+    url: `/users/${userId}`,
     method: 'put',
     data
   })

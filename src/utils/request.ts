@@ -45,6 +45,7 @@ const refreshRequest = axios.create({
 })
 
 let isRedirectingToLogin = false
+let isRedirectingToForbidden = false
 let refreshPromise: Promise<string | null> | null = null
 
 function clearAuthState(): void {
@@ -105,6 +106,29 @@ function redirectToLogin(): void {
   window.location.replace(`/login?${params.toString()}`)
 }
 
+function redirectToForbidden(message = '当前账号没有访问权限，请联系管理员授权'): void {
+  if (isRedirectingToForbidden) {
+    return
+  }
+
+  isRedirectingToForbidden = true
+  const currentPath = window.location.pathname
+  if (currentPath === '/403') {
+    isRedirectingToForbidden = false
+    return
+  }
+
+  ElMessage.warning(message)
+  const params = new URLSearchParams({
+    reason: 'forbidden',
+    redirect: `${window.location.pathname}${window.location.search}`
+  })
+  if (message) {
+    params.set('message', message)
+  }
+  window.location.replace(`/403?${params.toString()}`)
+}
+
 function isUnauthorizedCase(code?: number, message?: string): boolean {
   if (code === ResultCode.UNAUTHORIZED) {
     return true
@@ -122,6 +146,17 @@ function isUnauthorizedCase(code?: number, message?: string): boolean {
     (text.includes('token') && text.includes('invalid')) ||
     (text.includes('token') && text.includes('expired'))
   )
+}
+
+function isForbiddenCase(code?: number, message?: string): boolean {
+  if (code === ResultCode.FORBIDDEN) {
+    return true
+  }
+  if (!message) {
+    return false
+  }
+  const text = message.toLowerCase()
+  return text.includes('没有访问权限') || text.includes('无权限') || text.includes('forbidden')
 }
 
 function saveRefreshedAuthState(payload: RefreshTokenPayload): string | null {
@@ -209,6 +244,9 @@ request.interceptors.response.use(
     if (isUnauthorizedCase(status, message) && error.config) {
       return retryAfterRefresh(error.config as AuthInternalRequestConfig, message)
     }
+    if (isForbiddenCase(status, message) && !isPublicAuthRequest(error.config)) {
+      redirectToForbidden(message)
+    }
     throw new Error(message)
   }
 )
@@ -220,6 +258,9 @@ export async function requestApi<T>(config: AuthRequestConfig): Promise<T> {
   if (result.code !== ResultCode.SUCCESS) {
     if (isUnauthorizedCase(result.code, result.message) && !isPublicAuthRequest(config)) {
       redirectToLogin()
+    }
+    if (isForbiddenCase(result.code, result.message) && !isPublicAuthRequest(config)) {
+      redirectToForbidden(result.message)
     }
     throw new Error(result.message || '请求失败')
   }

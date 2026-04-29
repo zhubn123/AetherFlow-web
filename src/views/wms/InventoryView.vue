@@ -125,7 +125,7 @@ const materialOptions = ref<Material[]>([])
 
 const query = reactive<InventoryQuery>({
   pageNo: 1,
-  pageSize: 10,
+  pageSize: 5,
   warehouseId: undefined,
   areaId: undefined,
   locationId: undefined,

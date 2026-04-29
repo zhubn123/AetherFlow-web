@@ -139,7 +139,7 @@ const statusFilter = ref('')
 
 const query = reactive<MaterialQuery>({
   pageNo: 1,
-  pageSize: 10,
+  pageSize: 5,
   materialCode: '',
   materialName: '',
   status: undefined

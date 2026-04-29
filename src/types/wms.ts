@@ -1,12 +1,6 @@
-export type IdValue = string | number
+import type { IdValue, PageResult } from '@/types/common'
 
-export interface PageResult<T> {
-  pageNo: number
-  pageSize: number
-  total: number
-  pages: number
-  records: T[]
-}
+export type { IdValue, PageResult }
 
 export interface Warehouse {
   id: IdValue
