@@ -100,7 +100,8 @@ const menuGroups = computed<MenuGroup[]>(() => {
     key: 'system',
     title: '系统管理',
     items: [
-      { title: '用户管理', path: '/system/users', icon: Setting, roles: ['admin'] }
+      { title: '用户管理', path: '/system/users', icon: Setting, roles: ['admin'] },
+      { title: '角色管理', path: '/system/roles', icon: Setting, roles: ['admin'] }
     ]
   }
   ]

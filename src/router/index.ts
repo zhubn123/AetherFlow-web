@@ -39,6 +39,11 @@ export const constantRoutes = [
                 meta: { roles: ['admin'] }
             },
             {
+                path: 'system/roles',
+                component: () => import('@/views/system/RoleManagementView.vue'),
+                meta: { roles: ['admin'] }
+            },
+            {
                 path: 'wms/warehouses',
                 component: () => import('@/views/wms/WarehouseView.vue')
             },

@@ -3,9 +3,12 @@
     <header class="page-header">
       <div>
         <h1>用户管理</h1>
-        <p>维护账号基础信息、角色分配与启停状态，当前页面按现有管理页风格先行落地。</p>
+        <p>维护账号基础信息、角色分配与启停状态。权限通过角色配置，用户页展示的是当前生效权限。</p>
       </div>
-      <RouterLink to="/dashboard"><el-button plain>返回首页</el-button></RouterLink>
+      <div class="actions-row">
+        <RouterLink to="/system/roles"><el-button type="primary" plain>角色管理</el-button></RouterLink>
+        <RouterLink to="/dashboard"><el-button plain>返回首页</el-button></RouterLink>
+      </div>
     </header>
 
     <section class="panel">
@@ -22,9 +25,12 @@
         <div class="field">
           <label>角色</label>
           <el-select v-model="roleFilter" placeholder="全部" clearable>
-            <el-option label="管理员" value="admin" />
-            <el-option label="操作员" value="operator" />
-            <el-option label="只读" value="viewer" />
+            <el-option
+              v-for="role in roleOptions"
+              :key="role.roleKey"
+              :label="role.roleName"
+              :value="role.roleKey"
+            />
           </el-select>
         </div>
         <div class="field">
@@ -45,14 +51,6 @@
     <section class="panel">
       <h2>用户列表</h2>
       <el-alert
-        v-if="backendPending"
-        class="message"
-        type="info"
-        :closable="false"
-        :show-icon="true"
-        title="后端用户管理接口尚未接入，当前页面已先完成前端结构与交互承载。"
-      />
-      <el-alert
         v-if="successMessage"
         class="message"
         type="success"
@@ -68,13 +66,20 @@
         :show-icon="true"
         :title="errorMessage"
       />
-      <p class="muted-tip">当前默认角色边界：`admin` 全权限，`operator` 主数据只读且单据可操作，`viewer` 全局只读。</p>
+      <p class="muted-tip">权限通过角色继承，不在用户上单独维护。要调整权限集合，请进入“角色管理”。</p>
       <el-table :data="rows" v-loading="loading" empty-text="暂无数据">
-        <el-table-column prop="username" label="用户名" min-width="140" />
+        <el-table-column prop="username" label="用户名" min-width="150">
+          <template #default="{ row }">
+            <div class="tag-stack">
+              <span>{{ row.username }}</span>
+              <el-tag v-if="row.immutable" type="danger" size="small" effect="light">内置管理员</el-tag>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column label="昵称" min-width="140">
           <template #default="{ row }">{{ row.nickname || '-' }}</template>
         </el-table-column>
-        <el-table-column label="角色" min-width="180">
+        <el-table-column label="角色" min-width="210">
           <template #default="{ row }">
             <div class="tag-list">
               <el-tag
@@ -86,6 +91,27 @@
                 {{ formatRole(role) }}
               </el-tag>
               <span v-if="!row.roles.length">-</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="生效权限" min-width="280">
+          <template #default="{ row }">
+            <div class="permission-preview">
+              <template v-if="row.permissionNames.length">
+                <el-tag
+                  v-for="permission in row.permissionNames.slice(0, 4)"
+                  :key="permission"
+                  size="small"
+                  effect="plain"
+                  type="info"
+                >
+                  {{ permission }}
+                </el-tag>
+                <span v-if="row.permissionNames.length > 4" class="permission-more">
+                  +{{ row.permissionNames.length - 4 }}
+                </span>
+              </template>
+              <span v-else>-</span>
             </div>
           </template>
         </el-table-column>
@@ -105,9 +131,17 @@
         <el-table-column label="最后登录" min-width="180">
           <template #default="{ row }">{{ row.lastLoginTime || '-' }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="startEdit(row)">编辑</el-button>
+            <el-button
+              link
+              type="primary"
+              size="small"
+              :disabled="row.immutable"
+              @click="startEdit(row)"
+            >
+              编辑
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -126,10 +160,17 @@
       v-model="formVisible"
       class="wms-dialog"
       :title="formTitle"
-      width="760px"
+      width="860px"
       :close-on-click-modal="false"
       @closed="resetForm"
     >
+      <el-alert
+        class="message"
+        type="info"
+        :closable="false"
+        :show-icon="true"
+        title="权限通过角色自动继承。如需调整权限集合，请先到角色管理里维护角色。"
+      />
       <div class="field-grid">
         <div class="field">
           <label>用户名</label>
@@ -158,12 +199,36 @@
         <div class="field">
           <label>角色 *</label>
           <el-select v-model="form.roleKeys" multiple placeholder="请选择角色">
-            <el-option label="管理员" value="admin" />
-            <el-option label="操作员" value="operator" />
-            <el-option label="只读" value="viewer" />
+            <el-option
+              v-for="role in roleOptions"
+              :key="role.roleKey"
+              :label="role.roleName"
+              :value="role.roleKey"
+              :disabled="role.status !== 0"
+            />
           </el-select>
         </div>
       </div>
+
+      <div class="permission-panel">
+        <div class="panel-header">
+          <h3>角色联动后的生效权限</h3>
+          <span class="panel-tip">共 {{ selectedPermissionNames.length }} 项</span>
+        </div>
+        <div class="tag-list">
+          <el-tag
+            v-for="permission in selectedPermissionNames"
+            :key="permission"
+            size="small"
+            effect="plain"
+            type="info"
+          >
+            {{ permission }}
+          </el-tag>
+          <span v-if="selectedPermissionNames.length === 0">当前未选角色</span>
+        </div>
+      </div>
+
       <template #footer>
         <div class="actions-row">
           <el-button type="primary" :disabled="loading" @click="submitForm">保存修改</el-button>
@@ -186,6 +251,7 @@ import {
   type ManagedUserUpdateRequest,
   type UserManagementQuery
 } from '@/api/user'
+import { queryRoleOptionsApi, type RoleOption } from '@/api/role'
 import type { IdValue } from '@/types/common'
 
 interface UserManagementForm {
@@ -204,10 +270,10 @@ const total = ref(0)
 const pages = ref(0)
 const successMessage = ref('')
 const errorMessage = ref('')
-const backendPending = ref(false)
 const formVisible = ref(false)
 const roleFilter = ref('')
 const statusFilter = ref('')
+const roleOptions = ref<RoleOption[]>([])
 
 const query = reactive<UserManagementQuery>({
   pageNo: 1,
@@ -230,6 +296,19 @@ const form = reactive<UserManagementForm>({
 
 const formTitle = computed(() => {
   return form.username ? `编辑用户：${form.username}` : '编辑用户'
+})
+
+const roleOptionMap = computed(() => {
+  return new Map(roleOptions.value.map((role) => [role.roleKey, role]))
+})
+
+const selectedPermissionNames = computed(() => {
+  const permissionNames = new Set<string>()
+  form.roleKeys.forEach((roleKey) => {
+    const role = roleOptionMap.value.get(roleKey)
+    role?.permissionNames.forEach((permissionName) => permissionNames.add(permissionName))
+  })
+  return Array.from(permissionNames)
 })
 
 function clearMessages(): void {
@@ -286,13 +365,16 @@ function startEdit(row: ManagedUser): void {
   form.roleKeys = [...row.roles]
 }
 
+async function loadRoleOptions(): Promise<void> {
+  roleOptions.value = await queryRoleOptionsApi()
+}
+
 async function loadData(): Promise<void> {
   clearMessages()
   normalizeQuery()
   loading.value = true
   try {
     const result = await queryUserPage(query)
-    backendPending.value = false
     rows.value = result.records
     total.value = result.total
     pages.value = Math.max(result.pages, 1)
@@ -302,13 +384,7 @@ async function loadData(): Promise<void> {
     rows.value = []
     total.value = 0
     pages.value = 0
-    if (isNotReadyError(error)) {
-      backendPending.value = true
-      errorMessage.value = ''
-    } else {
-      backendPending.value = false
-      errorMessage.value = error instanceof Error ? error.message : '用户列表加载失败'
-    }
+    errorMessage.value = error instanceof Error ? error.message : '用户列表加载失败'
   } finally {
     loading.value = false
   }
@@ -336,17 +412,11 @@ async function submitForm(): Promise<void> {
   loading.value = true
   try {
     await updateManagedUserApi(form.id, payload)
-    backendPending.value = false
     successMessage.value = '用户更新成功'
     closeDialog()
-    await loadData()
+    await Promise.all([loadRoleOptions(), loadData()])
   } catch (error) {
-    if (isNotReadyError(error)) {
-      backendPending.value = true
-      errorMessage.value = '后端用户管理写接口尚未接入，当前前端表单结构已准备完成。'
-    } else {
-      errorMessage.value = error instanceof Error ? error.message : '保存失败'
-    }
+    errorMessage.value = error instanceof Error ? error.message : '保存失败'
   } finally {
     loading.value = false
   }
@@ -367,14 +437,9 @@ function onPageSizeChange(pageSize: number): void {
 }
 
 function formatRole(roleKey: string): string {
-  if (roleKey === 'admin') {
-    return '管理员'
-  }
-  if (roleKey === 'operator') {
-    return '操作员'
-  }
-  if (roleKey === 'viewer') {
-    return '只读'
+  const role = roleOptionMap.value.get(roleKey)
+  if (role) {
+    return role.roleName
   }
   return roleKey
 }
@@ -409,16 +474,15 @@ function statusTagType(status: number): '' | 'success' | 'warning' | 'info' | 'd
   return 'success'
 }
 
-function isNotReadyError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
-    return false
+onMounted(async () => {
+  loading.value = true
+  try {
+    await Promise.all([loadRoleOptions(), loadData()])
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '初始化用户管理失败'
+  } finally {
+    loading.value = false
   }
-  const message = error.message.toLowerCase()
-  return message.includes('404') || message.includes('资源不存在') || message.includes('not found')
-}
-
-onMounted(() => {
-  void loadData()
 })
 </script>
 
@@ -429,5 +493,49 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.tag-stack {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.permission-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.permission-more {
+  color: #7b8ead;
+  font-size: 12px;
+}
+
+.permission-panel {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #e3e8f3;
+  padding-top: 16px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 15px;
+  color: #1f3355;
+}
+
+.panel-tip {
+  font-size: 12px;
+  color: #7b8ead;
 }
 </style>

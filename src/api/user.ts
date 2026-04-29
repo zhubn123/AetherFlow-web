@@ -35,6 +35,9 @@ export interface ManagedUser {
   status: number
   lastLoginTime?: string
   roles: string[]
+  permissionKeys: string[]
+  permissionNames: string[]
+  immutable: boolean
 }
 
 export interface ManagedUserUpdateRequest {
