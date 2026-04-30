@@ -1,15 +1,53 @@
 <template>
   <div class="wms-page">
     <header class="page-header">
-      <div>
+      <div class="page-header__main">
+        <p class="page-header__eyebrow">Inbound Workspace</p>
         <h1>入库管理</h1>
-        <p>支持草稿创建、确认入账和单据状态跟踪。</p>
+        <p>围绕“草稿创建 → 提交 → 收货上架 → 完成入账”组织单据、状态和库存变化。</p>
       </div>
-      <RouterLink to="/dashboard"><el-button plain>返回首页</el-button></RouterLink>
+      <div class="actions-row page-header__actions">
+        <RouterLink to="/dashboard"><el-button plain>返回首页</el-button></RouterLink>
+        <el-button type="primary" @click="openCreateDialog">新建入库单</el-button>
+      </div>
     </header>
 
+    <div class="metric-grid">
+      <article v-for="item in metrics" :key="item.key" class="metric-card">
+        <div class="metric-card__icon" :style="{ '--accent': item.color }">
+          <el-icon><component :is="item.icon" /></el-icon>
+        </div>
+        <div>
+          <p class="metric-card__label">{{ item.label }}</p>
+          <p class="metric-card__value">{{ item.value }}</p>
+          <p class="metric-card__meta">{{ item.meta }}</p>
+        </div>
+      </article>
+    </div>
+
+    <section class="panel page-flow">
+      <div class="panel-header">
+        <div>
+          <h3>入库流程</h3>
+          <p class="panel-subtext">单据驱动库存增加，完成节点后生成库存流水。</p>
+        </div>
+      </div>
+      <div class="flow-strip">
+        <article v-for="step in flowSteps" :key="step.key" class="flow-node" :class="step.tone">
+          <span class="flow-node__step">{{ step.step }}</span>
+          <strong class="flow-node__title">{{ step.title }}</strong>
+          <span class="flow-node__meta">{{ step.meta }}</span>
+        </article>
+      </div>
+    </section>
+
     <section class="panel">
-      <h2>查询条件</h2>
+      <div class="panel-header">
+        <div>
+          <h3>查询条件</h3>
+          <p class="panel-subtext">按单号、仓库、区域和状态快速过滤草稿与已确认单据。</p>
+        </div>
+      </div>
       <div class="field-grid">
         <div class="field">
           <label>单号</label>
@@ -52,12 +90,19 @@
     </section>
 
     <section class="panel">
-      <h2>入库单列表</h2>
+      <div class="toolbar-row">
+        <div class="toolbar-row__left">
+          <div>
+            <h3 class="panel-title-inline">入库单列表</h3>
+            <p class="toolbar-row__meta">列表页承担查询、查看、编辑草稿和触发确认动作。</p>
+          </div>
+        </div>
+        <div class="toolbar-row__right">
+          <el-button plain :disabled="loading" @click="loadData">刷新列表</el-button>
+        </div>
+      </div>
       <el-alert v-if="successMessage" class="message" type="success" :closable="false" :show-icon="true" :title="successMessage" />
       <el-alert v-if="errorMessage" class="message" type="error" :closable="false" :show-icon="true" :title="errorMessage" />
-      <div class="actions-row">
-        <el-button type="primary" :disabled="loading" @click="openCreateDialog">新建入库单</el-button>
-      </div>
       <el-table :data="rows" v-loading="loading" empty-text="暂无数据">
         <el-table-column prop="orderNo" label="单号" min-width="170" />
         <el-table-column label="仓库" min-width="180">
@@ -195,9 +240,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
+import { Box, Document, UploadFilled, WarningFilled } from '@element-plus/icons-vue'
 import WmsPagination from '@/components/WmsPagination.vue'
 import {
   confirmInboundOrder,
@@ -242,6 +288,14 @@ const formAreaOptions = ref<Area[]>([])
 const locationOptions = ref<Location[]>([])
 const materialOptions = ref<Material[]>([])
 
+const flowSteps = [
+  { key: 'draft', step: 'STEP 01', title: '创建草稿', meta: '填写单头与基础信息', tone: 'flow-node--primary' },
+  { key: 'items', step: 'STEP 02', title: '补充明细', meta: '选择物料、库位和计划数量', tone: '' },
+  { key: 'submit', step: 'STEP 03', title: '提交确认', meta: '进入待收货状态', tone: 'flow-node--warning' },
+  { key: 'receive', step: 'STEP 04', title: '收货上架', meta: '执行入账并落库位', tone: 'flow-node--success' },
+  { key: 'finish', step: 'STEP 05', title: '完成入账', meta: '库存增加并生成流水', tone: 'flow-node--success' }
+] as const
+
 const query = reactive<InboundOrderQuery>({
   pageNo: 1,
   pageSize: 5,
@@ -257,6 +311,17 @@ const form = reactive<InboundDraftForm>({
   areaId: '',
   remark: '',
   orderItemsBo: []
+})
+
+const metrics = computed(() => {
+  const confirmed = rows.value.filter((item) => item.status === 1).length
+  const draft = rows.value.length - confirmed
+  return [
+    { key: 'total', label: '单据总数', value: String(total.value), meta: `当前页 ${rows.value.length} 单`, color: '#5b8cff', icon: Document },
+    { key: 'draft', label: '草稿单据', value: String(draft), meta: '待提交或待确认', color: '#ff9a1f', icon: WarningFilled },
+    { key: 'confirmed', label: '已确认单据', value: String(confirmed), meta: '已执行入库动作', color: '#34b36b', icon: UploadFilled },
+    { key: 'warehouse', label: '涉及仓库数', value: String(new Set(rows.value.map((item) => String(item.warehouseId))).size), meta: '当前页统计', color: '#9b6cff', icon: Box }
+  ]
 })
 
 function clearMessages(): void {

@@ -2,34 +2,39 @@
   font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #14213d;
-  background-color: #edf3ff;
+  color: #162848;
+  background-color: #f5f8fd;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --af-brand: #2563eb;
-  --af-brand-2: #1d4ed8;
-  --af-ink: #15284a;
-  --af-text-2: #5f6f90;
-  --af-text-3: #8391ad;
-  --af-bg-top: #f7f9fc;
-  --af-bg-bottom: #f2f5fa;
+  --af-brand: #2d67e3;
+  --af-brand-2: #2458d2;
+  --af-brand-soft: #edf4ff;
+  --af-ink: #162848;
+  --af-text-2: #65779b;
+  --af-text-3: #8b9aba;
+  --af-bg-top: #fbfcff;
+  --af-bg-bottom: #f4f7fc;
   --af-surface: #ffffff;
   --af-surface-strong: #ffffff;
-  --af-border: #dfe6f1;
-  --af-shadow: 0 4px 14px rgba(19, 43, 88, 0.06);
+  --af-panel: rgba(255, 255, 255, 0.92);
+  --af-border: #e3eaf5;
+  --af-shadow: 0 12px 30px rgba(24, 54, 107, 0.06);
+  --af-shadow-soft: 0 6px 20px rgba(24, 54, 107, 0.05);
 
   --el-color-primary: var(--af-brand);
-  --el-color-primary-dark-2: #1e40af;
-  --el-border-radius-base: 10px;
-  --el-border-color: #d8e2f3;
-  --el-border-color-light: #e2e9f6;
+  --el-color-primary-dark-2: #1f4fc4;
+  --el-border-radius-base: 12px;
+  --el-border-color: #dbe4f1;
+  --el-border-color-light: #e8eef6;
   --el-fill-color-blank: var(--af-surface-strong);
   --el-text-color-primary: var(--af-ink);
   --el-text-color-regular: #334a74;
   --el-text-color-secondary: var(--af-text-2);
+  --el-bg-color: #fff;
+  --el-fill-color-light: #f5f8fd;
 }
 
 *,
@@ -49,7 +54,9 @@ body,
 body {
   min-height: 100vh;
   color: var(--af-ink);
-  background: linear-gradient(180deg, var(--af-bg-top) 0%, var(--af-bg-bottom) 100%);
+  background:
+    radial-gradient(circle at top right, rgba(49, 96, 220, 0.08), transparent 22%),
+    linear-gradient(180deg, var(--af-bg-top) 0%, var(--af-bg-bottom) 100%);
 }
 
 #app {
@@ -58,4 +65,35 @@ body {
 
 a {
   color: inherit;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.el-button {
+  font-weight: 600;
+}
+
+.el-button--primary {
+  box-shadow: 0 10px 20px rgba(45, 103, 227, 0.18);
+}
+
+.el-card,
+.el-dialog,
+.el-table,
+.el-table__inner-wrapper,
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+  border-radius: 14px;
+}
+
+.el-table {
+  --el-table-header-bg-color: #fbfcff;
+  --el-table-row-hover-bg-color: #f7faff;
+  --el-table-border-color: #e9eef6;
 }

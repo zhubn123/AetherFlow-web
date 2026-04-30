@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteLocationGeneric } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
 export const constantRoutes = [
@@ -83,7 +83,7 @@ export const constantRoutes = [
     },
     {
         path: '/:pathMatch(.*)*',
-        redirect: (to) => ({
+        redirect: (to: RouteLocationGeneric) => ({
             path: '/404',
             query: {
                 path: to.fullPath
